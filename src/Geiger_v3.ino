@@ -54,6 +54,8 @@ void setup()
     time_setup();
     Serial.printf("[i]   Setup MQTT\n");
     mqtt_setup();
+    Serial.printf("[i]   Setup BME280/CCS811\n");
+    env_setup();
 
     Serial.println("Setup done");
 
@@ -66,6 +68,7 @@ void loop()
 
     hasWork |= led_loop();
     hasWork |= adc_loop();
+    hasWork |= env_loop();
     hasWork |= buz_loop();
     hasWork |= pwm_loop();
     hasWork |= wifi_loop();

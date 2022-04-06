@@ -100,7 +100,12 @@ bool mqtt_loop()
             int counts = det_fetch();
             
             mqtt_publish_int((char*)"feeds/integer/geiger/ticks", counts);
+            mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
+            mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
             mqtt_publish_float((char*)"feeds/float/geiger/voltage", adc_voltage_avg);
+            mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
+            mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
+            mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
         }
         nextTime = time + 1000;
     }
