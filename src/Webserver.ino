@@ -110,7 +110,7 @@ void handle_test()
 void handle_set_parm()
 {
     current_config.pwm_freq = max(500, min(500000, webserver.arg("pwm_freq").toInt()));
-    current_config.pwm_start = max(1, min(99, webserver.arg("pwm_start").toInt()));
+    current_config.pwm_start = max(1, min(99, webserver.arg("pwm_start").toFloat()));
     current_config.pwm_min = max(1, min(99, webserver.arg("pwm_min").toInt()));
     current_config.pwm_max = max(1, min(99, webserver.arg("pwm_max").toInt()));
     current_config.voltage_target = max(1, min(420, webserver.arg("voltage_target").toFloat()));
@@ -141,7 +141,7 @@ void handle_set_parm()
     {
         Serial.printf("Config:\n");
         Serial.printf("  pwm_freq:         %d Hz\n", current_config.pwm_freq);
-        Serial.printf("  pwm_start:        %d %%\n", current_config.pwm_start);
+        Serial.printf("  pwm_start:        %2.2f %%\n", current_config.pwm_start);
         Serial.printf("  pwm_min:          %d %%\n", current_config.pwm_min);
         Serial.printf("  pwm_max:          %d %%\n", current_config.pwm_max);
         Serial.printf("  voltage_target:   %2.2f V\n", current_config.voltage_target);
@@ -208,7 +208,7 @@ String SendHTML()
     {
         ptr += "<a href=\"/ota\">[Enable OTA]</a> ";
     }
-    sprintf(buf, "<br>Voltage: %f V at %2.0f %%</h1>\n", adc_voltage_avg, pwm_value);
+    sprintf(buf, "<br>Voltage: %f V at %2.2f %%</h1>\n", adc_voltage_avg, pwm_value);
     ptr += buf;
     ptr += "<br><br>\n";
 
@@ -247,22 +247,22 @@ String SendHTML()
         ptr += buf; \
     } while (0)
 
-#define ADD_CONFIG_COLOR(name, value, fmt, desc)                                                                                \
-    do                                                                                                                    \
-    {                                                                                                                     \
-        ptr += "<tr><td><label for=\"" name "\">" desc ":</label></td>";                                                  \
+#define ADD_CONFIG_COLOR(name, value, fmt, desc) \
+    do \
+    { \
+        ptr += "<tr><td><label for=\"" name "\">" desc ":</label></td>"; \
         sprintf(buf, "<td><input type=\"text\" id=\"" name "\" name=\"" name "\" value=\"" fmt "\" data-coloris></td></tr>\n", value); \
-        ptr += buf;                                                                                                       \
+        ptr += buf; \
     } while (0)
 
     ADD_CONFIG("hostname", current_config.hostname, "%s", "Hostname");
-    ADD_CONFIG("voltage_target", current_config.voltage_target, "%2.0f", "Voltage target [V]");
+    ADD_CONFIG("voltage_target", current_config.voltage_target, "%2.0f", "Voltage target [V] (&#x00B1;5 %)");
     ADD_CONFIG("voltage_min", current_config.voltage_min, "%2.0f", "Voltage minimum [V]");
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
     ADD_CONFIG("voltage_avg", current_config.voltage_avg, "%d", "Voltage averaging [n]");
     ADD_CONFIG("adc_corr", current_config.adc_corr, "%1.2f", "ADC correction");
     ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency [Hz]");
-    ADD_CONFIG("pwm_start", current_config.pwm_start, "%d", "PWM startup duty cycle [%]");
+    ADD_CONFIG("pwm_start", current_config.pwm_start, "%1.2f", "PWM startup duty cycle [%]");
     ADD_CONFIG("pwm_min", current_config.pwm_min, "%d", "PWM min duty cycle [%]");
     ADD_CONFIG("pwm_max", current_config.pwm_max, "%d", "PWM max duty cycle [%]");
     ADD_CONFIG("buzz_length", current_config.buzz_length, "%d", "Buzzer duration [ms]");

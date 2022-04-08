@@ -11,7 +11,7 @@ typedef struct
     uint32_t voltage_avg;
     float adc_corr;
     uint32_t pwm_freq;
-    uint32_t pwm_start;
+    float pwm_start;
     uint32_t pwm_min;
     uint32_t pwm_max;
     uint32_t verbose;

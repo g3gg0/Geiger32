@@ -4,8 +4,8 @@
 #define PWM_LEDC 1
 #define PWM_GPIO 27
 
-#define PWM_BITS 10
-#define PWM_PCT(x) ((100-x) * ((1UL << (PWM_BITS)) - 1) / 100)
+#define PWM_BITS 11
+#define PWM_PCT(x) ((uint32_t) ((100.0f-x) * ((1UL << (PWM_BITS)) - 1) / 100.0f))
 
 float pwm_value = 50;
 
@@ -20,13 +20,16 @@ void pwm_setup()
     digitalWrite(PWM_GPIO, LOW);
     pinMode(PWM_GPIO, OUTPUT);
 
+    Serial.printf("[i]     Frequency       %d Hz\n", current_config.pwm_freq);
+    Serial.printf("[i]     PWM resolution  %d Bits\n", PWM_BITS);
+    Serial.printf("[i]     Startup duty    %2.2f %%\n", current_config.pwm_start);
     pwm_value = current_config.pwm_start;
 
     ledcAttachPin(PWM_GPIO, PWM_LEDC);
     ledcSetup(PWM_LEDC, current_config.pwm_freq, PWM_BITS);
     ledcWrite(PWM_LEDC, PWM_PCT(pwm_value));
 
-    adc_voltage_avg = 0;
+    //adc_voltage_avg = 0;
     pwm_learn_state = 0;
     pwm_last_time = millis();
 }
@@ -66,7 +69,7 @@ bool pwm_loop()
 
     if(current_config.verbose & 1)
     {
-        Serial.printf("[PWM] Voltage %2.2f\n", adc_voltage);
+        Serial.printf("[PWM] Voltage %2.2f V (%2.2f V averaged)\n", adc_voltage, adc_voltage_avg);
     }
 
     /* safety check low prio, averaged */
@@ -97,7 +100,6 @@ bool pwm_loop()
         }
         else
         {
-
             if(adc_voltage_avg > pwm_learn_max_voltage)
             {
                 Serial.printf("[PWM] Voltage %2.2f <- new maximum at %2.0f %%\n", adc_voltage, pwm_value);
@@ -115,15 +117,21 @@ bool pwm_loop()
         }
     }
 
-    if (adc_voltage_avg < 0.98f * current_config.voltage_target && pwm_value < current_config.pwm_max)
+    if (adc_voltage_avg < 0.95f * current_config.voltage_target)
     {
-        pwm_value++;
-        Serial.printf("[PWM] < %2.2f, PWM => %2.2f\n", current_config.voltage_target, pwm_value);
+        if(pwm_value < current_config.pwm_max)
+        {
+            pwm_value += 0.05f;
+        }
+        Serial.printf("[PWM] %2.2f V < %2.2f, PWM => %2.2f\n", adc_voltage_avg, current_config.voltage_target, pwm_value);
     }
-    if (adc_voltage_avg > 1.02f * current_config.voltage_target && pwm_value > current_config.pwm_min)
+    if (adc_voltage_avg > 1.05f * current_config.voltage_target)
     {
-        pwm_value--;
-        Serial.printf("[PWM] > %2.2f, PWM => %2.2f\n", current_config.voltage_target, pwm_value);
+        if(pwm_value > current_config.pwm_min)
+        {
+            pwm_value -= 0.05f;
+        }
+        Serial.printf("[PWM] %2.2f V > %2.2f, PWM => %2.2f\n", adc_voltage_avg, current_config.voltage_target, pwm_value);
     }
     
     pwm_value = min(pwm_value, (float)current_config.pwm_max);
