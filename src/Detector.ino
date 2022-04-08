@@ -64,6 +64,11 @@ bool det_loop()
         det_last_events_avg = (65 * det_last_events_avg + det_this) / 66;
     }
 
+    if(isinf(det_last_events_avg) || isnan(det_last_events_avg))
+    {
+        det_last_events_avg = 0;
+    }
+
 
     /* when averaging result is elevated, set warning level for 10s */
     if(det_last_events_avg > current_config.elevated_level)

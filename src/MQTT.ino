@@ -14,8 +14,7 @@
 WiFiClient client;
 PubSubClient mqtt(client);
 
-extern uint32_t lon_rx_count;
-extern uint32_t lon_crc_errors;
+extern float pwm_value;
 
 int mqtt_last_publish_time = 0;
 int mqtt_lastConnect = 0;
@@ -106,6 +105,7 @@ bool mqtt_loop()
             mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
             mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
             mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
+            mqtt_publish_float((char*)"feeds/float/geiger/pwm_value", pwm_value);
         }
         nextTime = time + 1000;
     }

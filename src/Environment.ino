@@ -10,6 +10,7 @@
 Adafruit_BME280 bme;
 Adafruit_CCS811 ccs;
 
+#define BME_ALTITUDE  395
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 float bme280_temperature;
@@ -39,6 +40,14 @@ void env_setup()
         Serial.print("        ID of 0x61 represents a BME 680.\n");
         while (1) delay(10);
     }
+    
+    bme.setSampling(
+        Adafruit_BME280::MODE_FORCED,
+        Adafruit_BME280::SAMPLING_X1,
+        Adafruit_BME280::SAMPLING_X1,
+        Adafruit_BME280::SAMPLING_X1,
+        Adafruit_BME280::FILTER_OFF);
+        
     Serial.println(F("..success BME280"));
     
     ccs.begin(0x5B);
@@ -59,23 +68,25 @@ bool env_loop()
     
     if (time >= nextTimeBME280)
     {
+        bme.takeForcedMeasurement();
+        float temp = bme.readTemperature();
+        float humd = bme.readHumidity();
+        float pres = bme.readPressure() / 100.0F;
+        float pres_corr = pres / pow(1 - BME_ALTITUDE/44330.0, 5.255);
+
+        bme280_temperature = temp;
+        bme280_pressure = pres_corr;
+        bme280_humidity = humd;
+
         Serial.print("Temperature = ");
-        bme280_temperature = bme.readTemperature();
         Serial.print(bme280_temperature);
         Serial.println(" °C");
 
         Serial.print("Pressure = ");
-
-        bme280_pressure = bme.readPressure() / 100.0F;
         Serial.print(bme280_pressure);
         Serial.println(" hPa");
 
-        Serial.print("Approx. Altitude = ");
-        Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-        Serial.println(" m");
-
         Serial.print("Humidity = ");
-        bme280_humidity = bme.readHumidity();
         Serial.print(bme280_humidity);
         Serial.println(" %");
 
