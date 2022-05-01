@@ -121,6 +121,7 @@ void handle_set_parm()
     current_config.elevated_level = max(1, min(1000, webserver.arg("elevated_level").toInt()));
     current_config.buzz_length = max(1, min(1000, webserver.arg("buzz_length").toInt()));
     current_config.buzz_freq = max(1, min(20000, webserver.arg("buzz_freq").toInt()));
+    current_config.mqtt_publish = max(0, min(65535, webserver.arg("mqtt_publish").toInt()));
 
     current_config.idle_color = strtoul(webserver.arg("idle_color").substring(1).c_str(), NULL, 16);
     current_config.elevated_color = strtoul(webserver.arg("elevated_color").substring(1).c_str(), NULL, 16);
@@ -152,6 +153,9 @@ void handle_set_parm()
         Serial.printf("  idle_color:       #%06X\n", current_config.idle_color);
         Serial.printf("  elevated_color:   #%06X\n", current_config.elevated_color);
         Serial.printf("  elevated_level:   %d %%\n", current_config.elevated_level);
+        Serial.printf("  buzz_length:      %d %%\n", current_config.buzz_length);
+        Serial.printf("  buzz_freq:        %d %%\n", current_config.buzz_freq);
+        Serial.printf("  mqtt_publish:     %d %%\n", current_config.mqtt_publish);
         Serial.printf("  verbose:          %d\n", current_config.verbose);
     }
     pwm_setup();
@@ -201,14 +205,14 @@ String SendHTML()
     ptr += "</head>\n";
     ptr += "<body>\n";
 
-    sprintf(buf, "<h1>Geiger v3 - %f V</h1>\n", adc_voltage_avg);
+    sprintf(buf, "<h1>Geiger v3</h1>\n");
 
     ptr += buf;
     if (!ota_enabled())
     {
         ptr += "<a href=\"/ota\">[Enable OTA]</a> ";
     }
-    sprintf(buf, "<br>Voltage: %f V at %2.2f %%</h1>\n", adc_voltage_avg, pwm_value);
+    sprintf(buf, "<br>Voltage: %3.2f V at %2.2f %%</h1>\n", adc_voltage_avg, pwm_value);
     ptr += buf;
     ptr += "<br><br>\n";
 
@@ -268,6 +272,7 @@ String SendHTML()
     ADD_CONFIG("buzz_length", current_config.buzz_length, "%d", "Buzzer duration [ms]");
     ADD_CONFIG("buzz_freq", current_config.buzz_freq, "%d", "Buzzer frequency [Hz]");
     ADD_CONFIG_CHECK4("verbose", current_config.verbose, "%d", "Verbosity", "Serial", "Beep", "Blink", "Fading");
+    ADD_CONFIG_CHECK4("mqtt_publish", current_config.mqtt_publish, "%d", "MQTT publishes", "Geiger", "Debug", "BME280", "CCS811");
     ADD_CONFIG_COLOR("idle_color", current_config.idle_color, "#%06X", "Idle color");
     ADD_CONFIG_COLOR("elevated_color", current_config.elevated_color, "#%06X", "Elevated color");
     ADD_CONFIG_COLOR("flash_color", current_config.flash_color, "#%06X", "Flash color");

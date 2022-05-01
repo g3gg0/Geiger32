@@ -6,7 +6,7 @@
 //#include "Adafruit_MQTT_Client.h"
 
 #define ARB_SERVER "mumble.g3gg0.de"
-#define ARB_CLIENT "Geiger_v3"
+#define ARB_CLIENT "Geiger_v31"
 #define ARB_SERVERPORT 11883
 #define ARB_USERNAME "g3gg0"
 #define ARB_PW "no#Password#Required"
@@ -44,9 +44,12 @@ void mqtt_publish_float(char *name, float value)
     char buffer[32];
 
     sprintf(buffer, "%0.2f", value);
+    if(false)
+    {
     if (!mqtt.publish(name, buffer))
     {
         mqtt_fail = true;
+    }
     }
     Serial.printf("Published %s : %s\n", name, buffer);
 }
@@ -60,7 +63,13 @@ void mqtt_publish_int(char *name, uint32_t value)
         return;
     }
     sprintf(buffer, "%d", value);
-    mqtt.publish(name, buffer);
+    if(false)
+    {
+    if (!mqtt.publish(name, buffer))
+    {
+        mqtt_fail = true;
+    }
+    }
     Serial.printf("Published %s : %s\n", name, buffer);
 }
 
@@ -98,14 +107,26 @@ bool mqtt_loop()
             mqtt_last_publish_time = time;
             int counts = det_fetch();
             
-            mqtt_publish_int((char*)"feeds/integer/geiger/ticks", counts);
-            mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
-            mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
-            mqtt_publish_float((char*)"feeds/float/geiger/voltage", adc_voltage_avg);
-            mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
-            mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
-            mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
-            mqtt_publish_float((char*)"feeds/float/geiger/pwm_value", pwm_value);
+            if(current_config.mqtt_publish & 1)
+            {
+                mqtt_publish_int((char*)"feeds/integer/geiger/ticks", counts);
+            }
+            if(current_config.mqtt_publish & 2)
+            {
+                mqtt_publish_float((char*)"feeds/float/geiger/voltage", adc_voltage_avg);
+                mqtt_publish_float((char*)"feeds/float/geiger/pwm_value", pwm_value);
+            }
+            if(current_config.mqtt_publish & 4)
+            {
+                mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
+                mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
+            }
+            if(current_config.mqtt_publish & 8)
+            {
+                mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
+                mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
+                mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
+            }
         }
         nextTime = time + 1000;
     }

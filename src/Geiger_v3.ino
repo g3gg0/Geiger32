@@ -32,6 +32,8 @@ void setup()
 
     Serial.printf("[i]   Setup LEDs\n");
     led_setup();
+    Serial.printf("[i]   Setup EPD\n");
+    epd_setup();
     Serial.printf("[i]   Setup SPIFFS\n");
     if (!SPIFFS.begin(true))
     {

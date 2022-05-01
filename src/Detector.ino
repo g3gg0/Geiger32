@@ -8,6 +8,7 @@
 #define DET_LAST_EVENT_COUNT 10
 
 uint32_t det_counts = 0;
+uint32_t det_counts_last = 0;
 uint32_t last_detects = 0;
 
 uint32_t led_det_r = 0;
@@ -23,6 +24,23 @@ uint32_t levels_elevated = 0;
 uint32_t det_last_events[DET_LAST_EVENT_COUNT];
 uint32_t det_last_event_count = 0;
 float det_last_events_avg = 0;
+
+
+/* https://github.com/radhoo/uradmonitor_kit1/blob/master/code/geiger/detectors.cpp 
+		case GEIGER_TUBE_SBM20: 	return 0.006315; // CPM 19
+		case GEIGER_TUBE_SI29BG: 	return 0.010000; // CPM 12
+		case GEIGER_TUBE_SBM19: 	return 0.001500; // CPM 80
+		case GEIGER_TUBE_LND712: 	return 0.005940; // CPM 20.20
+		case GEIGER_TUBE_SBM20M:	return 0.013333; // CPM 9
+		case GEIGER_TUBE_SI22G: 	return 0.001714; // CPM 70
+		case GEIGER_TUBE_STS5: 		return 0.006666; // CPM 18
+		case GEIGER_TUBE_SI3BG: 	return 0.631578; // CPM 0.19
+		case GEIGER_TUBE_SBM21: 	return 0.048000; // CPM 2.5
+		case GEIGER_TUBE_SBT9: 		return 0.010900; // CPM 11
+		case GEIGER_TUBE_SI1G:		return 0.006000; // CPM 20
+		case GEIGER_TUBE_SI8B:		return 0.001108; // 
+		case GEIGER_TUBE_SBT10A:	return 0.001105; // 
+        */
 
 void IRAM_ATTR det_isr()
 {
@@ -127,9 +145,9 @@ bool det_loop()
 
 uint32_t det_fetch()
 {
-    uint32_t cnt = det_counts;
+    det_counts_last = det_counts;
 
     det_counts = 0;
 
-    return cnt;
+    return det_counts_last;
 }

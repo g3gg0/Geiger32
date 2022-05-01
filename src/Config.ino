@@ -46,6 +46,7 @@ void cfg_reset()
     current_config.buzz_length = 20;
     current_config.buzz_freq = 1000;
     current_config.verbose = 7;
+    current_config.mqtt_publish = 0;
 
     cfg_save();
 }

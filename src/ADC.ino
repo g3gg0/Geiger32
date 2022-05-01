@@ -4,7 +4,8 @@
 
 #define ADC_GPIO 34
 
-#define R3 (14700000.0f)
+//#define R3 (14700000.0f)
+#define R3 (13800000.0f) /* the 14.7M falls in resistance with raising current */
 #define R4 (82000.0f)
 #define RSUM (R3 + R4)
 

@@ -16,21 +16,17 @@ Adafruit_CCS811 ccs;
 float bme280_temperature;
 float bme280_humidity;
 float bme280_pressure;
+bool bme280_detected = false;
 
 uint16_t ccs811_co2;
 uint16_t ccs811_tvoc;
 
 void env_setup()
 {
-    Serial.println(F("BME280 test"));
+    Serial.println(F("[BME280] Detection"));
 
-    unsigned status;
-    
-    // default settings
-    //status = bme.begin();  
-    // You can also pass in a Wire library object like &Wire2
     Wire.begin(26, 25);
-    status = bme.begin(0x76);
+    bool status = bme.begin(0x76);
     if (!status) {
         Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
         Serial.print("SensorID was: 0x"); Serial.println(bme.sensorID(),16);
@@ -38,8 +34,10 @@ void env_setup()
         Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
         Serial.print("        ID of 0x60 represents a BME 280.\n");
         Serial.print("        ID of 0x61 represents a BME 680.\n");
-        while (1) delay(10);
+        return;
     }
+
+    bme280_detected = true;
     
     bme.setSampling(
         Adafruit_BME280::MODE_FORCED,
@@ -65,6 +63,11 @@ bool env_loop()
 {
     uint32_t time = millis();
     static int nextTimeBME280 = 0;
+
+    if(!bme280_detected)
+    {
+        return false;
+    }
     
     if (time >= nextTimeBME280)
     {

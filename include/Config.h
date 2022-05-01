@@ -1,7 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define CONFIG_MAGIC 0xE1AAFF02
+#define CONFIG_MAGIC 0xE1AAFF03
 typedef struct
 {
     uint32_t magic;
@@ -21,6 +21,7 @@ typedef struct
     uint32_t elevated_level;
     uint32_t buzz_length;
     uint32_t buzz_freq;
+    uint32_t mqtt_publish;
     char hostname[32];
 } t_cfg;
 
