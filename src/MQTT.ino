@@ -1,15 +1,12 @@
-#define MQTT_DEBUG
+
 
 #include <PubSubClient.h>
+#include <ESP32httpUpdate.h>
 
-//#include "Adafruit_MQTT.h"
-//#include "Adafruit_MQTT_Client.h"
 
-#define ARB_SERVER "mumble.g3gg0.de"
-#define ARB_CLIENT "Geiger_v31"
-#define ARB_SERVERPORT 11883
-#define ARB_USERNAME "g3gg0"
-#define ARB_PW "no#Password#Required"
+#define COMMAND_TOPIC "tele/geiger/command"
+#define RESPONSE_TOPIC "tele/geiger/response"
+
 
 WiFiClient client;
 PubSubClient mqtt(client);
@@ -26,16 +23,56 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.print("Message arrived [");
     Serial.print(topic);
     Serial.print("] ");
+    Serial.print("'");
     for (int i = 0; i < length; i++)
     {
         Serial.print((char)payload[i]);
     }
+    Serial.print("'");
     Serial.println();
+
+    payload[length] = 0;
+
+    if(!strcmp(topic, COMMAND_TOPIC))
+    {
+      char *command = (char *)payload;
+      
+      if(!strncmp(command, "http", 4))
+      {
+          char buf[1024];
+          sprintf(buf, "updating from: '%s'", command);
+          Serial.printf("%s\n", buf);
+          mqtt.publish(RESPONSE_TOPIC, buf);
+          t_httpUpdate_return ret = ESPhttpUpdate.update(command);
+          
+          sprintf(buf, "update failed");
+          switch(ret)
+          {
+              case HTTP_UPDATE_FAILED:
+                  sprintf(buf, "HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                  break;
+  
+              case HTTP_UPDATE_NO_UPDATES:
+                  sprintf(buf, "HTTP_UPDATE_NO_UPDATES");
+                  break;
+  
+              case HTTP_UPDATE_OK:
+                  sprintf(buf, "HTTP_UPDATE_OK");
+                  break;
+          }
+          mqtt.publish(RESPONSE_TOPIC, buf);
+          Serial.printf("%s\n", buf);
+      }
+      else
+      {
+          Serial.printf("unknown command: '%s'", command);
+      }
+    }
 }
 
 void mqtt_setup()
 {
-    mqtt.setServer(ARB_SERVER, ARB_SERVERPORT);
+    mqtt.setServer(current_config.mqtt_server, current_config.mqtt_port);
     mqtt.setCallback(callback);
 }
 
@@ -44,12 +81,10 @@ void mqtt_publish_float(char *name, float value)
     char buffer[32];
 
     sprintf(buffer, "%0.2f", value);
-    if(false)
-    {
+    
     if (!mqtt.publish(name, buffer))
     {
         mqtt_fail = true;
-    }
     }
     Serial.printf("Published %s : %s\n", name, buffer);
 }
@@ -63,12 +98,10 @@ void mqtt_publish_int(char *name, uint32_t value)
         return;
     }
     sprintf(buffer, "%d", value);
-    if(false)
-    {
+    
     if (!mqtt.publish(name, buffer))
     {
         mqtt_fail = true;
-    }
     }
     Serial.printf("Published %s : %s\n", name, buffer);
 }
@@ -118,14 +151,14 @@ bool mqtt_loop()
             }
             if(current_config.mqtt_publish & 4)
             {
-                mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
-                mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
-            }
-            if(current_config.mqtt_publish & 8)
-            {
                 mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
                 mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
                 mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
+            }
+            if(current_config.mqtt_publish & 8)
+            {
+                mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
+                mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
             }
         }
         nextTime = time + 1000;
@@ -157,7 +190,7 @@ void MQTT_connect()
     mqtt_lastConnect = curTime;
 
     Serial.print("MQTT: Connecting to MQTT... ");
-    ret = mqtt.connect(ARB_CLIENT, ARB_USERNAME, ARB_PW);
+    ret = mqtt.connect(current_config.mqtt_client, current_config.mqtt_user, current_config.mqtt_password);
 
     if (ret == 0)
     {
@@ -172,6 +205,9 @@ void MQTT_connect()
     }
     else
     {
+        /* discard counts till then */
+        det_fetch();
         Serial.println("MQTT Connected!");
+        mqtt.subscribe(COMMAND_TOPIC);
     }
 }

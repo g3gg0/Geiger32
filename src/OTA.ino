@@ -12,10 +12,10 @@ void ota_setup()
         ota_enable();
         return;
     }
-    ArduinoOTA.setHostname("Geiger-v3");
+    ArduinoOTA.setHostname(CONFIG_OTANAME);
 
     ArduinoOTA.onStart([]() {
-        String type;
+        Serial.printf("[OTA] starting\n");
         led_set(0, 255, 0, 255);
         ota_active = true; 
         ota_offtime = millis() + 600000;

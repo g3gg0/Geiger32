@@ -1,12 +1,15 @@
+#include <DNSServer.h>
+DNSServer dnsServer;
 
-const char *ssid = "g3gg0.de";
-const char *password = "xxx";
 bool connecting = false;
+bool wifi_captive = false;
+char wifi_error[64];
 
 void wifi_setup()
 {
-    Serial.printf("[WiFi] Connecting...\n");
-    WiFi.begin(ssid, password);
+    Serial.printf("[WiFi] Connecting to '%s', password '%s'...\n", current_config.wifi_ssid, current_config.wifi_password);
+    sprintf(wifi_error, "");
+    WiFi.begin(current_config.wifi_ssid, current_config.wifi_password);
     connecting = true;
     led_set(1, 8, 8, 0);
 }
@@ -25,6 +28,25 @@ bool wifi_loop(void)
     static int nextTime = 0;
     static int stateCounter = 0;
 
+    if(wifi_captive)
+    {
+        dnsServer.processNextRequest();
+        led_set(1, 0, ((millis() % 250) > 125) ? 0 : 255, 0);
+
+        /* captive mode, but noone cares */
+        if(!www_is_captive_active())
+        {
+            Serial.printf("[WiFi] Timeout in captive, trying known networks again\n");
+            sprintf(wifi_error, "Timeout in captive, trying known networks again");
+            dnsServer.stop();
+            wifi_off();
+            wifi_captive = false;
+            stateCounter = 0;
+            sprintf(wifi_error, "");
+        }
+        return true;
+    }
+
     if (nextTime > curTime)
     {
         return false;
@@ -33,15 +55,32 @@ bool wifi_loop(void)
     /* standard refresh time */
     nextTime = curTime + 500;
 
+
     /* when stuck at a state, disconnect */
-    if (++stateCounter > 40)
+    if (++stateCounter > 20)
     {
-        Serial.printf("[WiFi] Timeout, aborting\n");
-        led_set(1, 255, 0, 255);
+        Serial.printf("[WiFi] Timeout connecting\n");
+        sprintf(wifi_error, "Timeout - incorrect password?");
         wifi_off();
+    }
+    
+    if(strcmp(wifi_error, ""))
+    {
+        Serial.printf("[WiFi] Entering captive mode. Reason: '%s'\n", wifi_error);
+        wifi_off();
+        WiFi.softAP(CONFIG_SOFTAPNAME);
+        dnsServer.start(53, "*", WiFi.softAPIP());
+        Serial.printf("[WiFi] Local IP: %s\n", WiFi.softAPIP().toString().c_str());
+
+        wifi_captive = true;
+
+        /* reset captive idle timer */
+        www_activity();
+        
         stateCounter = 0;
         return false;
     }
+
 
     switch (status)
     {
@@ -53,6 +92,7 @@ bool wifi_loop(void)
                 Serial.print("[WiFi] Connected, IP address: ");
                 Serial.println(WiFi.localIP());
                 stateCounter = 0;
+                sprintf(wifi_error, "");
             }
             else
             {
@@ -82,19 +122,20 @@ bool wifi_loop(void)
 
         case WL_CONNECTION_LOST:
             Serial.printf("[WiFi] Connection lost\n");
+            sprintf(wifi_error, "Network found, but connection lost");
             led_set(1, 32, 8, 0);
             wifi_off();
             break;
 
         case WL_CONNECT_FAILED:
             Serial.printf("[WiFi] Connection failed\n");
-            led_set(1, 255, 0, 0);
+            sprintf(wifi_error, "Network found, but connection failed");
             wifi_off();
             break;
 
         case WL_NO_SSID_AVAIL:
-            Serial.printf("[WiFi] No SSID\n");
-            led_set(1, 32, 0, 32);
+            Serial.printf("[WiFi] No SSID with that name\n");
+            sprintf(wifi_error, "Network not found");
             wifi_off();
             break;
 
@@ -116,9 +157,9 @@ bool wifi_loop(void)
             if (!connecting)
             {
                 connecting = true;
-                Serial.printf("[WiFi]  Idle, connect to %s\n", ssid);
+                Serial.printf("[WiFi]  Idle, connect to '%s'\n", current_config.wifi_ssid);
                 WiFi.mode(WIFI_STA);
-                WiFi.begin(ssid, password);
+                WiFi.begin(current_config.wifi_ssid, current_config.wifi_password);
             }
             else
             {
@@ -130,9 +171,9 @@ bool wifi_loop(void)
             if (!connecting)
             {
                 connecting = true;
-                Serial.printf("[WiFi]  Disabled (%d), connecting to %s\n", status, ssid);
+                Serial.printf("[WiFi]  Disabled (%d), connecting to '%s'\n", status, current_config.wifi_ssid);
                 WiFi.mode(WIFI_STA);
-                WiFi.begin(ssid, password);
+                WiFi.begin(current_config.wifi_ssid, current_config.wifi_password);
             }
             break;
 

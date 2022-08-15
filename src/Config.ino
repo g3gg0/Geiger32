@@ -16,7 +16,7 @@ void cfg_save()
 
     if (strlen(current_config.hostname) < 2)
     {
-        strcpy(current_config.hostname, "Geigerv3");
+        strcpy(current_config.hostname, "Geiger");
     }
 
     file.write((uint8_t *)&current_config, sizeof(current_config));
@@ -29,6 +29,13 @@ void cfg_reset()
 
     current_config.magic = CONFIG_MAGIC;
     strcpy(current_config.hostname, "Geiger");
+    
+    strcpy(current_config.mqtt_server, "mumble.g3gg0.de");
+    current_config.mqtt_port = 11883;
+    strcpy(current_config.mqtt_user, "g3gg0");
+    strcpy(current_config.mqtt_password, "no#Password#Required");
+    strcpy(current_config.mqtt_client, "esp32-mqtt");
+    current_config.mqtt_publish = 0;
 
     current_config.adc_corr = 1.0f;
     current_config.voltage_target = 380;
@@ -47,6 +54,9 @@ void cfg_reset()
     current_config.buzz_freq = 1000;
     current_config.verbose = 7;
     current_config.mqtt_publish = 0;
+    
+    strcpy(current_config.wifi_ssid, "(not set)");
+    strcpy(current_config.wifi_password, "(not set)");
 
     cfg_save();
 }

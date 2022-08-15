@@ -1,15 +1,20 @@
-
 #include <WebServer.h>
+#include <ESP32httpUpdate.h>
 #include "Config.h"
 
 WebServer webserver(80);
+extern char wifi_error[];
+extern bool wifi_captive;
+int www_wifi_scanned = -1;
+int www_last_captive = 0;
 
 #define min(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
 #define max(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
 
 void www_setup()
 {
-    webserver.on("/", handle_OnConnect);
+    webserver.on("/", handle_root);
+    webserver.on("/index.html", handle_index);
     webserver.on("/set_parm", handle_set_parm);
     webserver.on("/search", handle_search);
     webserver.on("/ota", handle_ota);
@@ -20,7 +25,7 @@ void www_setup()
     webserver.on("/counts_avg", handle_counts_avg);
     webserver.on("/reset", handle_reset);
     webserver.on("/test", handle_test);
-    webserver.onNotFound(handle_NotFound);
+    webserver.onNotFound(handle_404);
 
     webserver.begin();
     Serial.println("HTTP server started");
@@ -37,13 +42,54 @@ void www_setup()
     MDNS.addService("telnet", "tcp", 23);
 }
 
+void www_activity()
+{
+    if(wifi_captive)
+    {
+        www_last_captive = millis();
+    }
+}
+
+
+int www_is_captive_active()
+{
+    if(wifi_captive && millis() - www_last_captive < 30000)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+void handle_404()
+{
+    www_activity();
+
+    if(wifi_captive)
+    {
+        char buf[128];
+        sprintf(buf, "HTTP/1.1 302 Found\r\nContent-Type: text/html\r\nContent-length: 0\r\nLocation: http://%s/\r\n\r\n", WiFi.softAPIP().toString().c_str());
+        webserver.sendContent(buf);
+        Serial.printf("[WWW] 302 - http://%s%s/ -> http://%s/\n", webserver.hostHeader().c_str(), webserver.uri().c_str(), WiFi.softAPIP().toString().c_str());
+    }
+    else
+    {
+        webserver.send(404, "text/plain", "So empty here");
+        Serial.printf("[WWW] 404 - http://%s%s/\n", webserver.hostHeader().c_str(), webserver.uri().c_str());
+    }
+}
+
+void handle_index()
+{
+    webserver.send(200, "text/html", SendHTML());
+}
+
 bool www_loop()
 {
     webserver.handleClient();
     return false;
 }
 
-void handle_OnConnect()
+void handle_root()
 {
     webserver.send(200, "text/html", SendHTML());
 }
@@ -121,7 +167,6 @@ void handle_set_parm()
     current_config.elevated_level = max(1, min(1000, webserver.arg("elevated_level").toInt()));
     current_config.buzz_length = max(1, min(1000, webserver.arg("buzz_length").toInt()));
     current_config.buzz_freq = max(1, min(20000, webserver.arg("buzz_freq").toInt()));
-    current_config.mqtt_publish = max(0, min(65535, webserver.arg("mqtt_publish").toInt()));
 
     current_config.idle_color = strtoul(webserver.arg("idle_color").substring(1).c_str(), NULL, 16);
     current_config.elevated_color = strtoul(webserver.arg("elevated_color").substring(1).c_str(), NULL, 16);
@@ -133,8 +178,21 @@ void handle_set_parm()
     current_config.verbose |= (webserver.arg("verbose_c1") != "") ? 2 : 0;
     current_config.verbose |= (webserver.arg("verbose_c2") != "") ? 4 : 0;
     current_config.verbose |= (webserver.arg("verbose_c3") != "") ? 8 : 0;
+    current_config.mqtt_publish = 0;
+    current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c0") != "") ? 1 : 0;
+    current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c1") != "") ? 2 : 0;
+    current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c2") != "") ? 4 : 0;
+    current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c3") != "") ? 8 : 0;
 
     strncpy(current_config.hostname, webserver.arg("hostname").c_str(), sizeof(current_config.hostname));
+    strncpy(current_config.wifi_ssid, webserver.arg("wifi_ssid").c_str(), sizeof(current_config.wifi_ssid));
+    strncpy(current_config.wifi_password, webserver.arg("wifi_password").c_str(), sizeof(current_config.wifi_password));
+
+    strncpy(current_config.mqtt_server, webserver.arg("mqtt_server").c_str(), sizeof(current_config.mqtt_server));
+    current_config.mqtt_port = max(1, min(65535, webserver.arg("mqtt_port").toInt()));
+    strncpy(current_config.mqtt_user, webserver.arg("mqtt_user").c_str(), sizeof(current_config.mqtt_user));
+    strncpy(current_config.mqtt_password, webserver.arg("mqtt_password").c_str(), sizeof(current_config.mqtt_password));
+    strncpy(current_config.mqtt_client, webserver.arg("mqtt_client").c_str(), sizeof(current_config.mqtt_client));
 
     cfg_save();
 
@@ -159,7 +217,46 @@ void handle_set_parm()
         Serial.printf("  verbose:          %d\n", current_config.verbose);
     }
     pwm_setup();
+
+  if(webserver.arg("http_update") != "")
+  {
+      webserver.send(200, "text/text", "Updating from " + webserver.arg("http_update"));
+      
+      Serial.println("updating from: " + webserver.arg("http_update"));
+      t_httpUpdate_return ret = ESPhttpUpdate.update(webserver.arg("http_update"));
+
+      switch(ret)
+      {
+          case HTTP_UPDATE_FAILED:
+              Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+              break;
+
+          case HTTP_UPDATE_NO_UPDATES:
+              Serial.println("HTTP_UPDATE_NO_UPDATES");
+              break;
+
+          case HTTP_UPDATE_OK:
+              Serial.println("HTTP_UPDATE_OK");
+              break;
+      }
+      return;
+  }
+  
+  
+    if(webserver.arg("reboot") == "true")
+    {
+        webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/index.html\"/></head><body><h1>Saved. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
+        delay(500);
+        ESP.restart();
+        return; 
+    }
+  
+    if(webserver.arg("scan") == "true")
+    {
+        www_wifi_scanned = WiFi.scanNetworks();
+    }
     webserver.send(200, "text/html", SendHTML());
+    www_wifi_scanned = -1;
 }
 
 void handle_NotFound()
@@ -171,6 +268,8 @@ String SendHTML()
 {
     char buf[1024];
 
+    www_activity();
+
     String ptr = "<!DOCTYPE html> <html>\n";
     ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
 
@@ -179,6 +278,8 @@ String SendHTML()
     ptr += buf;
     ptr += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
     ptr += "body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+    ptr += "input{font-family: Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace; }\n";
+    ptr += "tr:nth-child(odd) {background: #CCC} tr:nth-child(even) {background: #FFF}\n";
     ptr += ".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
     ptr += ".button-on {background-color: #3498db;}\n";
     ptr += ".button-on:active {background-color: #2980b9;}\n";
@@ -207,6 +308,12 @@ String SendHTML()
 
     sprintf(buf, "<h1>Geiger v3</h1>\n");
 
+
+    if(strlen(wifi_error) != 0)
+    {
+      sprintf(buf, "<h2>WiFi Error: %s</h1>\n", wifi_error);
+    }
+
     ptr += buf;
     if (!ota_enabled())
     {
@@ -216,7 +323,7 @@ String SendHTML()
     ptr += buf;
     ptr += "<br><br>\n";
 
-    ptr += "<form action=\"/set_parm\">\n";
+    ptr += "<form id=\"config\" action=\"/set_parm\">\n";
     ptr += "<table>";
 
 #define ADD_CONFIG(name, value, fmt, desc)                                                                                \
@@ -260,6 +367,49 @@ String SendHTML()
     } while (0)
 
     ADD_CONFIG("hostname", current_config.hostname, "%s", "Hostname");
+    ADD_CONFIG("wifi_ssid", current_config.wifi_ssid, "%s", "WiFi SSID");
+    ADD_CONFIG("wifi_password", current_config.wifi_password, "%s", "WiFi Password");
+    
+
+
+    ptr += "<tr><td>WiFi networks:</td><td>";
+
+    if (www_wifi_scanned == -1)
+    {
+        ptr += "<button type=\"submit\" name=\"scan\" value=\"true\">Scan WiFi</button>";
+    }
+    else if (www_wifi_scanned == 0)
+    {
+        ptr += "No networks found, <button type=\"submit\" name=\"scan\" value=\"true\">Rescan WiFi</button>";
+    }
+    else 
+    {
+        ptr += "<table>";
+        ptr += "<tr><td><button type=\"submit\" name=\"scan\" value=\"true\">Rescan WiFi</button></td></tr>";
+        for (int i = 0; i < www_wifi_scanned; ++i)
+        {
+            if(WiFi.SSID(i) != "")
+            {
+                ptr += "<tr><td align=\"left\"><tt><a href=\"javascript:void(0);\" onclick=\"document.getElementById('wifi_ssid').value = '";
+                ptr += WiFi.SSID(i);
+                ptr += "'\">";
+                ptr += WiFi.SSID(i);
+                ptr += "</a></tt></td><td align=\"left\"><tt>";
+                ptr += WiFi.RSSI(i);
+                ptr += " dBm</tt></td></tr>";
+            }
+        }
+        ptr += "</table>";
+    }
+
+    ptr += "</td></tr>";
+
+    ADD_CONFIG("mqtt_server", current_config.mqtt_server, "%s", "MQTT Server");
+    ADD_CONFIG("mqtt_port", current_config.mqtt_port, "%d", "MQTT Port");
+    ADD_CONFIG("mqtt_user", current_config.mqtt_user, "%s", "MQTT Username");
+    ADD_CONFIG("mqtt_password", current_config.mqtt_password, "%s", "MQTT Password");
+    ADD_CONFIG("mqtt_client", current_config.mqtt_client, "%s", "MQTT Client Identification");
+
     ADD_CONFIG("voltage_target", current_config.voltage_target, "%2.0f", "Voltage target [V] (&#x00B1;5 %)");
     ADD_CONFIG("voltage_min", current_config.voltage_min, "%2.0f", "Voltage minimum [V]");
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
@@ -277,8 +427,9 @@ String SendHTML()
     ADD_CONFIG_COLOR("elevated_color", current_config.elevated_color, "#%06X", "Elevated color");
     ADD_CONFIG_COLOR("flash_color", current_config.flash_color, "#%06X", "Flash color");
     ADD_CONFIG("elevated_level", current_config.elevated_level, "%d", "Elevated level [cpm]");
+    ADD_CONFIG("http_update", "", "%s", "Update URL");
 
-    ptr += "<td></td><td><input type=\"submit\" value=\"Write\"></td></table></form>\n";
+    ptr += "<td></td><td><input type=\"submit\" value=\"Save\"><button type=\"submit\" name=\"reboot\" value=\"true\">Save &amp; Reboot</button></td></table></form>\n";
 
     ptr += "<form action=\"/search\">\n";
     ptr += "<input type=\"submit\" value=\"Raise PWM and search peak\"></form>\n";

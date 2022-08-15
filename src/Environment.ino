@@ -27,34 +27,39 @@ void env_setup()
 
     Wire.begin(26, 25);
     bool status = bme.begin(0x76);
-    if (!status) {
+    if (!status)
+    {
         Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
         Serial.print("SensorID was: 0x"); Serial.println(bme.sensorID(),16);
         Serial.print("        ID of 0xFF probably means a bad address, a BMP 180 or BMP 085\n");
         Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
         Serial.print("        ID of 0x60 represents a BME 280.\n");
         Serial.print("        ID of 0x61 represents a BME 680.\n");
-        return;
+    }
+    else
+    {
+        bme280_detected = true;
+        bme.setSampling(
+            Adafruit_BME280::MODE_FORCED,
+            Adafruit_BME280::SAMPLING_X1,
+            Adafruit_BME280::SAMPLING_X1,
+            Adafruit_BME280::SAMPLING_X1,
+            Adafruit_BME280::FILTER_OFF);
+            
+        Serial.println(F("..success BME280"));
     }
 
-    bme280_detected = true;
     
-    bme.setSampling(
-        Adafruit_BME280::MODE_FORCED,
-        Adafruit_BME280::SAMPLING_X1,
-        Adafruit_BME280::SAMPLING_X1,
-        Adafruit_BME280::SAMPLING_X1,
-        Adafruit_BME280::FILTER_OFF);
-        
-    Serial.println(F("..success BME280"));
     
     ccs.begin(0x5B);
-    while(!ccs.available());
-    float temp = ccs.calculateTemperature();
-    ccs.setTempOffset(temp - 25.0);
-    ccs.setDriveMode(CCS811_DRIVE_MODE_10SEC);
-    ccs.disableInterrupt();
-    Serial.println(F("..success CCS811"));
+    if(ccs.available())
+    {
+        float temp = ccs.calculateTemperature();
+        ccs.setTempOffset(temp - 25.0);
+        ccs.setDriveMode(CCS811_DRIVE_MODE_10SEC);
+        ccs.disableInterrupt();
+        Serial.println(F("..success CCS811"));
+    }
 
     Serial.println();
 }

@@ -50,10 +50,10 @@ void pwm_learn()
 bool pwm_loop()
 {
     /* safety check high prio */
-    if (adc_voltage > current_config.voltage_max)
+    if (adc_voltage_avg > current_config.voltage_max)
     {
         pwm_value = 0;
-        Serial.printf("[PWM] Voltage %2.2f > %2.2f, shutdown\n", adc_voltage, current_config.voltage_max);
+        Serial.printf("[PWM] Voltage %2.2f > %2.2f, shutdown\n", adc_voltage_avg, current_config.voltage_max);
         ledcWrite(PWM_LEDC, PWM_PCT(0));
         return false;
     }
