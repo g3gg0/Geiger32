@@ -2,6 +2,9 @@
 #include <ESP32httpUpdate.h>
 #include "Config.h"
 
+#define xstr(s) str(s)
+#define str(s) #s
+
 WebServer webserver(80);
 extern char wifi_error[];
 extern bool wifi_captive;
@@ -388,14 +391,17 @@ String SendHTML()
     ptr += "<body>\n";
 
     sprintf(buf, "<h1>Geiger v3</h1>\n");
+    ptr += buf;
 
-
+    sprintf(buf, "<h3>v1." xstr(PIO_SRC_REVNUM) " - " xstr(PIO_SRC_REV) "</h1>\n");
+    ptr += buf;
+    
     if(strlen(wifi_error) != 0)
     {
-      sprintf(buf, "<h2>WiFi Error: %s</h1>\n", wifi_error);
+        sprintf(buf, "<h2>WiFi Error: %s</h1>\n", wifi_error);
+        ptr += buf;
     }
 
-    ptr += buf;
     if (!ota_enabled())
     {
         ptr += "<a href=\"/ota\">[Enable OTA]</a> ";
