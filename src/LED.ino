@@ -5,6 +5,8 @@
 
 CRGB leds[LED_COUNT];
 
+bool led_inhibit = false;
+
 void led_setup()
 {
     FastLED.addLeds<NEOPIXEL, LED_GPIO>(leds, LED_COUNT);
@@ -17,6 +19,11 @@ void led_setup()
 
 void led_set_adv(uint8_t n, uint8_t r, uint8_t g, uint8_t b, bool commit)
 {
+    if(led_inhibit)
+    {
+        return;
+    }
+
     leds[n] = CRGB(r, g, b);
 
     if (commit)
@@ -24,9 +31,15 @@ void led_set_adv(uint8_t n, uint8_t r, uint8_t g, uint8_t b, bool commit)
         FastLED.show();
     }
 }
+
 void led_set(uint8_t n, uint8_t r, uint8_t g, uint8_t b)
 {
     return led_set_adv(n, r, g, b, true);
+}
+
+void led_set_inhibit(bool state)
+{
+    led_inhibit = state;
 }
 
 bool led_loop()

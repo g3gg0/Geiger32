@@ -5,6 +5,7 @@
 #include "Config.h"
 
 t_cfg current_config;
+bool config_valid = false;
 
 void cfg_save()
 {
@@ -30,22 +31,23 @@ void cfg_reset()
     current_config.magic = CONFIG_MAGIC;
     strcpy(current_config.hostname, "Geiger");
     
-    strcpy(current_config.mqtt_server, "mumble.g3gg0.de");
+    strcpy(current_config.mqtt_server, "");
     current_config.mqtt_port = 11883;
-    strcpy(current_config.mqtt_user, "g3gg0");
-    strcpy(current_config.mqtt_password, "no#Password#Required");
-    strcpy(current_config.mqtt_client, "esp32-mqtt");
+    strcpy(current_config.mqtt_user, "");
+    strcpy(current_config.mqtt_password, "");
+    strcpy(current_config.mqtt_client, "geiger-NAME");
     current_config.mqtt_publish = 0;
 
     current_config.adc_corr = 1.0f;
     current_config.voltage_target = 380;
-    current_config.voltage_min = 200;
+    current_config.voltage_min = 100;
     current_config.voltage_max = 450;
     current_config.voltage_avg = 512;
-    current_config.pwm_freq = 22000;
-    current_config.pwm_start = 1;
-    current_config.pwm_min = 1;
-    current_config.pwm_max = 90;
+    current_config.pwm_pid_i = 30;
+    current_config.pwm_freq = 30000;
+    current_config.pwm_freq_min = 22000;
+    current_config.pwm_freq_max = 40000;
+    current_config.pwm_value = 80;
     current_config.idle_color = 0;
     current_config.elevated_color = 0xFF0000;
     current_config.flash_color = 0xFFFFFF;
@@ -57,13 +59,13 @@ void cfg_reset()
     
     strcpy(current_config.wifi_ssid, "(not set)");
     strcpy(current_config.wifi_password, "(not set)");
-
-    cfg_save();
 }
 
 void cfg_read()
 {
     File file = SPIFFS.open("/config.dat", "r");
+
+    config_valid = false;
 
     if (!file || file.isDirectory())
     {
@@ -77,6 +79,8 @@ void cfg_read()
         if (current_config.magic != CONFIG_MAGIC)
         {
             cfg_reset();
+            return;
         }
+        config_valid = true;
     }
 }

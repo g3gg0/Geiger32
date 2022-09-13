@@ -5,7 +5,8 @@
 #define ADC_GPIO 34
 
 //#define R3 (14700000.0f)
-#define R3 (13800000.0f) /* the 14.7M falls in resistance with raising current */
+//#define R3 (13800000.0f) /* the 14.7M falls in resistance with raising current */
+#define R3 (15800000.0f) /* the 14.7M falls in resistance with raising current */
 #define R4 (82000.0f)
 #define RSUM (R3 + R4)
 
@@ -25,6 +26,11 @@ void adc_setup()
 float adc_get_voltage()
 {
     return adc_voltage_avg;
+}
+
+void adc_reset_voltage()
+{
+    adc_voltage_avg = 0;
 }
 
 bool adc_loop()
@@ -47,12 +53,5 @@ bool adc_loop()
         adc_voltage_avg = adc_voltage;
     }
 
-    /*
-      Serial.printf("raw:%2.0f,", adc_raw);
-      Serial.printf("Vadc:%2.2f,", adc_vadc);
-      Serial.printf("Vhv:%2.2f,", adc_voltage);
-      Serial.printf("Vhvavg:%2.2f", adc_voltage_avg);
-      Serial.printf("\n");
-      */
     return true;
 }

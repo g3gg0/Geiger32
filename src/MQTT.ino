@@ -1,5 +1,7 @@
 
 
+//#define TESTMODE
+
 #include <PubSubClient.h>
 #include <ESP32httpUpdate.h>
 
@@ -12,6 +14,7 @@ WiFiClient client;
 PubSubClient mqtt(client);
 
 extern float pwm_value;
+extern uint32_t pwm_freq;
 
 int mqtt_last_publish_time = 0;
 int mqtt_lastConnect = 0;
@@ -49,7 +52,7 @@ void callback(char *topic, byte *payload, unsigned int length)
           switch(ret)
           {
               case HTTP_UPDATE_FAILED:
-                  sprintf(buf, "HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                  sprintf(buf, "HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
                   break;
   
               case HTTP_UPDATE_NO_UPDATES:
@@ -72,44 +75,51 @@ void callback(char *topic, byte *payload, unsigned int length)
 
 void mqtt_setup()
 {
-    mqtt.setServer(current_config.mqtt_server, current_config.mqtt_port);
     mqtt.setCallback(callback);
 }
 
 void mqtt_publish_float(char *name, float value)
 {
+    char path_buffer[128];
     char buffer[32];
 
+    sprintf(path_buffer, name, current_config.mqtt_client);
     sprintf(buffer, "%0.2f", value);
     
-    if (!mqtt.publish(name, buffer))
+    if (!mqtt.publish(path_buffer, buffer))
     {
         mqtt_fail = true;
     }
-    Serial.printf("Published %s : %s\n", name, buffer);
+    Serial.printf("Published %s : %s\n", path_buffer, buffer);
 }
 
 void mqtt_publish_int(char *name, uint32_t value)
 {
+    char path_buffer[128];
     char buffer[32];
 
     if (value == 0x7FFFFFFF)
     {
         return;
     }
+    sprintf(path_buffer, name, current_config.mqtt_client);
     sprintf(buffer, "%d", value);
     
-    if (!mqtt.publish(name, buffer))
+    if (!mqtt.publish(path_buffer, buffer))
     {
         mqtt_fail = true;
     }
-    Serial.printf("Published %s : %s\n", name, buffer);
+    Serial.printf("Published %s : %s\n", path_buffer, buffer);
 }
 
 bool mqtt_loop()
 {
     uint32_t time = millis();
     static int nextTime = 0;
+
+#ifdef TESTMODE
+    return false;
+#endif
 
     if (mqtt_fail)
     {
@@ -142,23 +152,24 @@ bool mqtt_loop()
             
             if(current_config.mqtt_publish & 1)
             {
-                mqtt_publish_int((char*)"feeds/integer/geiger/ticks", counts);
+                mqtt_publish_int((char*)"feeds/integer/%s/ticks", counts);
             }
             if(current_config.mqtt_publish & 2)
             {
-                mqtt_publish_float((char*)"feeds/float/geiger/voltage", adc_voltage_avg);
-                mqtt_publish_float((char*)"feeds/float/geiger/pwm_value", pwm_value);
+                mqtt_publish_float((char*)"feeds/float/%s/voltage", adc_voltage_avg);
+                mqtt_publish_float((char*)"feeds/float/%s/pwm_freq", pwm_freq);
+                mqtt_publish_float((char*)"feeds/float/%s/pwm_value", pwm_value);
             }
             if(current_config.mqtt_publish & 4)
             {
-                mqtt_publish_float((char*)"feeds/float/geiger/temperature", bme280_temperature);
-                mqtt_publish_float((char*)"feeds/float/geiger/humidity", bme280_humidity);
-                mqtt_publish_float((char*)"feeds/float/geiger/pressure", bme280_pressure);
+                mqtt_publish_float((char*)"feeds/float/%s/temperature", bme280_temperature);
+                mqtt_publish_float((char*)"feeds/float/%s/humidity", bme280_humidity);
+                mqtt_publish_float((char*)"feeds/float/%s/pressure", bme280_pressure);
             }
             if(current_config.mqtt_publish & 8)
             {
-                mqtt_publish_int((char*)"feeds/integer/geiger/co2", ccs811_co2);
-                mqtt_publish_int((char*)"feeds/integer/geiger/tvoc", ccs811_tvoc);
+                mqtt_publish_int((char*)"feeds/integer/%s/co2", ccs811_co2);
+                mqtt_publish_int((char*)"feeds/integer/%s/tvoc", ccs811_tvoc);
             }
         }
         nextTime = time + 1000;
@@ -171,6 +182,13 @@ void MQTT_connect()
 {
     int curTime = millis();
     int8_t ret;
+
+    if (strlen(current_config.mqtt_server) == 0)
+    {
+        return;
+    }
+    
+    mqtt.setServer(current_config.mqtt_server, current_config.mqtt_port);
 
     if (WiFi.status() != WL_CONNECTED)
     {
@@ -189,7 +207,7 @@ void MQTT_connect()
 
     mqtt_lastConnect = curTime;
 
-    Serial.print("MQTT: Connecting to MQTT... ");
+    Serial.println("MQTT: Connecting to MQTT...");
     ret = mqtt.connect(current_config.mqtt_client, current_config.mqtt_user, current_config.mqtt_password);
 
     if (ret == 0)

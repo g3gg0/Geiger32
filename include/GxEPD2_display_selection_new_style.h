@@ -14,12 +14,19 @@
 // Good Display ePaper for Arduino: https://forum.arduino.cc/index.php?topic=436411.0
 
 
-#define EPD_CS   19
-#define EPD_RST  21
-#define EPD_DC   14
-#define EPD_BUSY 33
+#define EPD_CS   14
+#define EPD_RST  22
+#define EPD_DC   19
+#define EPD_BUSY 21
 #define EPD_MOSI 23
-#define EPD_SCLK 22
+#define EPD_SCLK 33
+
+//#define EPD_CS   19
+//#define EPD_RST  21
+//#define EPD_DC   14
+//#define EPD_BUSY 33
+//#define EPD_MOSI 23
+//#define EPD_SCLK 22
 
 
 // select the display class (only one), matching the kind of display panel
@@ -68,14 +75,14 @@
 //#define GxEPD2_DRIVER_CLASS GxEPD2_213_Z19c // GDEW0213Z19 104x212, UC8151D
 //#define GxEPD2_DRIVER_CLASS GxEPD2_213_Z98c // GDEY0213Z98 122x250, SSD1680
 //#define GxEPD2_DRIVER_CLASS GxEPD2_290c     // GDEW029Z10  128x296, UC8151 (IL0373)
-#define GxEPD2_DRIVER_CLASS GxEPD2_290_Z13c // GDEH029Z13  128x296, UC8151D
+#define GxEPD2_DRIVER_CLASS GxEPD2_290_Z13c // GDEH029Z13  128x296, UC8151D             <<---
 //#define GxEPD2_DRIVER_CLASS GxEPD2_290_C90c // GDEM029C90  128x296, SSD1680
 //#define GxEPD2_DRIVER_CLASS GxEPD2_270c     // GDEW027C44  176x264, IL91874
 //#define GxEPD2_DRIVER_CLASS GxEPD2_420c     // GDEW042Z15  400x300, UC8176 (IL0398)
 //#define GxEPD2_DRIVER_CLASS GxEPD2_420c_Z21 // GDEQ042Z21  400x300, UC8276
 //#define GxEPD2_DRIVER_CLASS GxEPD2_583c     // GDEW0583Z21 600x448, UC8179 (IL0371)
 //#define GxEPD2_DRIVER_CLASS GxEPD2_750c     // GDEW075Z09  640x384, UC8179 (IL0371)
-//#define GxEPD2_DRIVER_CLASS GxEPD2_750c_Z08 // GDEW075Z08  800x480, GD7965
+  // #define GxEPD2_DRIVER_CLASS GxEPD2_750c_Z08 // GDEW075Z08  800x480, GD7965
 //#define GxEPD2_DRIVER_CLASS GxEPD2_750c_Z90 // GDEH075Z90  880x528, SSD1677
 // 7-color e-paper
 //#define GxEPD2_DRIVER_CLASS GxEPD2_565c // Waveshare 5.65" 7-color (3C graphics)

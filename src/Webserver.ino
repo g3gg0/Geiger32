@@ -16,7 +16,6 @@ void www_setup()
     webserver.on("/", handle_root);
     webserver.on("/index.html", handle_index);
     webserver.on("/set_parm", handle_set_parm);
-    webserver.on("/search", handle_search);
     webserver.on("/ota", handle_ota);
     webserver.on("/plot", handle_plot);
     webserver.on("/voltage", handle_voltage);
@@ -25,6 +24,7 @@ void www_setup()
     webserver.on("/counts_avg", handle_counts_avg);
     webserver.on("/reset", handle_reset);
     webserver.on("/test", handle_test);
+    webserver.on("/play", handle_play);
     webserver.onNotFound(handle_404);
 
     webserver.begin();
@@ -40,6 +40,48 @@ void www_setup()
     }
     MDNS.addService("http", "tcp", 80);
     MDNS.addService("telnet", "tcp", 23);
+}
+
+unsigned char h2int(char c)
+{
+    if (c >= '0' && c <='9'){
+        return((unsigned char)c - '0');
+    }
+    if (c >= 'a' && c <='f'){
+        return((unsigned char)c - 'a' + 10);
+    }
+    if (c >= 'A' && c <='F'){
+        return((unsigned char)c - 'A' + 10);
+    }
+    return(0);
+}
+
+String urldecode(String str)
+{
+    String encodedString="";
+    char c;
+    char code0;
+    char code1;
+    for (int i =0; i < str.length(); i++){
+        c=str.charAt(i);
+      if (c == '+'){
+        encodedString+=' ';  
+      }else if (c == '%') {
+        i++;
+        code0=str.charAt(i);
+        i++;
+        code1=str.charAt(i);
+        c = (h2int(code0) << 4) | h2int(code1);
+        encodedString+=c;
+      } else{
+        
+        encodedString+=c;  
+      }
+      
+      yield();
+    }
+    
+   return encodedString;
 }
 
 void www_activity()
@@ -141,24 +183,88 @@ void handle_reset()
     ESP.restart();
 }
 
-void handle_search()
+void handle_play()
 {
-    webserver.send(200, "text/html", SendHTML());
-    pwm_learn();
+    static char tone_buf[1024];
+    const char *rtttl = urldecode(webserver.arg("tone")).c_str();
+
+    if(rtttl != NULL && strlen(rtttl) > 0)
+    {
+        strcpy(tone_buf, rtttl);
+
+        for(int pos = 0; pos < strlen(tone_buf); pos++)
+        {
+            if(tone_buf[pos] == '-')
+            {
+                tone_buf[pos] = '#';
+            }
+        }
+        webserver.send_P(200, "text/plain", tone_buf);
+        rtttl_play(tone_buf);
+    }
+    else
+    {
+        webserver.send(200, "text/plain", "Failed");
+    }
 }
 
 void handle_test()
 {
-    Serial.printf("Test\n");
-    webserver.send(200, "text/html", SendHTML());
+    uint32_t testmode = max(0, min(1, webserver.arg("testmode").toInt()));
+    uint32_t freq = max(500, min(500000, webserver.arg("pwm_freq").toInt()));
+    float duty = max(1, min(99, webserver.arg("pwm_value").toFloat()));
+
+    pwm_testmode(testmode);
+
+    if(testmode)
+    {
+        pwm_test(freq, duty);
+    }
+
+
+    webserver.send(200, "text/html", "Ok");
 }
 
 void handle_set_parm()
 {
-    current_config.pwm_freq = max(500, min(500000, webserver.arg("pwm_freq").toInt()));
-    current_config.pwm_start = max(1, min(99, webserver.arg("pwm_start").toFloat()));
-    current_config.pwm_min = max(1, min(99, webserver.arg("pwm_min").toInt()));
-    current_config.pwm_max = max(1, min(99, webserver.arg("pwm_max").toInt()));
+    if(webserver.arg("http_update") != "")
+    {
+        String url = webserver.arg("http_update");
+
+        Serial.printf("Update from %s\n", url.c_str());
+        
+        ESPhttpUpdate.rebootOnUpdate(false);
+        t_httpUpdate_return ret = ESPhttpUpdate.update(url);
+
+        switch(ret)
+        {
+            case HTTP_UPDATE_FAILED:
+                webserver.send(200, "text/plain", "HTTP_UPDATE_FAILED while updating from " + url + " " + ESPhttpUpdate.getLastErrorString());
+                Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                break;
+
+            case HTTP_UPDATE_NO_UPDATES:
+                webserver.send(200, "text/plain", "HTTP_UPDATE_NO_UPDATES: Updating from " + url);
+                Serial.println("Update failed: HTTP_UPDATE_NO_UPDATES");
+                break;
+
+            case HTTP_UPDATE_OK:
+                webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Firmware updated. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
+                webserver.close();
+                Serial.println("Update successful");
+                delay(500);
+                ESP.restart();
+                return; 
+        }
+
+        return;
+    }
+
+    current_config.pwm_pid_i = max(0, min(1000, webserver.arg("pwm_pid_i").toFloat()));
+    current_config.pwm_freq = max(1000, min(40000, webserver.arg("pwm_freq").toInt()));
+    current_config.pwm_freq_min = max(1000, min(40000, webserver.arg("pwm_freq_min").toInt()));
+    current_config.pwm_freq_max = max(1000, min(40000, webserver.arg("pwm_freq_max").toInt()));
+    current_config.pwm_value = max(1, min(99, webserver.arg("pwm_value").toFloat()));
     current_config.voltage_target = max(1, min(420, webserver.arg("voltage_target").toFloat()));
     current_config.voltage_min = max(0, min(420, webserver.arg("voltage_min").toFloat()));
     current_config.voltage_max = max(1, min(600, webserver.arg("voltage_max").toFloat()));
@@ -200,9 +306,9 @@ void handle_set_parm()
     {
         Serial.printf("Config:\n");
         Serial.printf("  pwm_freq:         %d Hz\n", current_config.pwm_freq);
-        Serial.printf("  pwm_start:        %2.2f %%\n", current_config.pwm_start);
-        Serial.printf("  pwm_min:          %d %%\n", current_config.pwm_min);
-        Serial.printf("  pwm_max:          %d %%\n", current_config.pwm_max);
+        Serial.printf("  pwm_start:        %2.2f %%\n", current_config.pwm_value);
+        Serial.printf("  pwm_freq_min:     %d Hz\n", current_config.pwm_freq_min);
+        Serial.printf("  pwm_freq_max:     %d Hz\n", current_config.pwm_freq_max);
         Serial.printf("  voltage_target:   %2.2f V\n", current_config.voltage_target);
         Serial.printf("  voltage_min:      %2.2f V\n", current_config.voltage_min);
         Serial.printf("  voltage_max:      %2.2f V\n", current_config.voltage_max);
@@ -217,35 +323,10 @@ void handle_set_parm()
         Serial.printf("  verbose:          %d\n", current_config.verbose);
     }
     pwm_setup();
-
-  if(webserver.arg("http_update") != "")
-  {
-      webserver.send(200, "text/text", "Updating from " + webserver.arg("http_update"));
-      
-      Serial.println("updating from: " + webserver.arg("http_update"));
-      t_httpUpdate_return ret = ESPhttpUpdate.update(webserver.arg("http_update"));
-
-      switch(ret)
-      {
-          case HTTP_UPDATE_FAILED:
-              Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-              break;
-
-          case HTTP_UPDATE_NO_UPDATES:
-              Serial.println("HTTP_UPDATE_NO_UPDATES");
-              break;
-
-          case HTTP_UPDATE_OK:
-              Serial.println("HTTP_UPDATE_OK");
-              break;
-      }
-      return;
-  }
-  
   
     if(webserver.arg("reboot") == "true")
     {
-        webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/index.html\"/></head><body><h1>Saved. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
+        webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Saved. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
         delay(500);
         ESP.restart();
         return; 
@@ -319,7 +400,7 @@ String SendHTML()
     {
         ptr += "<a href=\"/ota\">[Enable OTA]</a> ";
     }
-    sprintf(buf, "<br>Voltage: %3.2f V at %2.2f %%</h1>\n", adc_voltage_avg, pwm_value);
+    sprintf(buf, "<br>Voltage: %3.2f V at %d Hz</h1>\n", adc_voltage_avg, pwm_freq);
     ptr += buf;
     ptr += "<br><br>\n";
 
@@ -409,16 +490,16 @@ String SendHTML()
     ADD_CONFIG("mqtt_user", current_config.mqtt_user, "%s", "MQTT Username");
     ADD_CONFIG("mqtt_password", current_config.mqtt_password, "%s", "MQTT Password");
     ADD_CONFIG("mqtt_client", current_config.mqtt_client, "%s", "MQTT Client Identification");
-
-    ADD_CONFIG("voltage_target", current_config.voltage_target, "%2.0f", "Voltage target [V] (&#x00B1;5 %)");
+    ADD_CONFIG("voltage_target", current_config.voltage_target, "%2.0f", "Voltage target [V]");
     ADD_CONFIG("voltage_min", current_config.voltage_min, "%2.0f", "Voltage minimum [V]");
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
     ADD_CONFIG("voltage_avg", current_config.voltage_avg, "%d", "Voltage averaging [n]");
     ADD_CONFIG("adc_corr", current_config.adc_corr, "%1.2f", "ADC correction");
-    ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency [Hz]");
-    ADD_CONFIG("pwm_start", current_config.pwm_start, "%1.2f", "PWM startup duty cycle [%]");
-    ADD_CONFIG("pwm_min", current_config.pwm_min, "%d", "PWM min duty cycle [%]");
-    ADD_CONFIG("pwm_max", current_config.pwm_max, "%d", "PWM max duty cycle [%]");
+    ADD_CONFIG("pwm_pid_i", current_config.pwm_pid_i, "%1.2f", "PWM PID I-Gain (Hz/V)");
+    ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency startup [Hz]");
+    ADD_CONFIG("pwm_freq_min", current_config.pwm_freq_min, "%d", "PWM frequency min [Hz]");
+    ADD_CONFIG("pwm_freq_max", current_config.pwm_freq_max, "%d", "PWM frequency max [Hz]");
+    ADD_CONFIG("pwm_value", current_config.pwm_value, "%1.2f", "PWM duty cycle [%]");
     ADD_CONFIG("buzz_length", current_config.buzz_length, "%d", "Buzzer duration [ms]");
     ADD_CONFIG("buzz_freq", current_config.buzz_freq, "%d", "Buzzer frequency [Hz]");
     ADD_CONFIG_CHECK4("verbose", current_config.verbose, "%d", "Verbosity", "Serial", "Beep", "Blink", "Fading");
@@ -431,8 +512,10 @@ String SendHTML()
 
     ptr += "<td></td><td><input type=\"submit\" value=\"Save\"><button type=\"submit\" name=\"reboot\" value=\"true\">Save &amp; Reboot</button></td></table></form>\n";
 
+/*
     ptr += "<form action=\"/search\">\n";
-    ptr += "<input type=\"submit\" value=\"Raise PWM and search peak\"></form>\n";
+    ptr += "<input type=\"submit\" value=\"Raise PWM and search peak\"></form>\n";*/
+
     ptr += "</body>\n";
     ptr += "</html>\n";
     return ptr;

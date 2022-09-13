@@ -14,6 +14,9 @@ int led_g = 0;
 int led_b = 0;
 int loopCount = 0;
 
+extern bool config_valid;
+
+
 void setup()
 {
     Serial.begin(115200);
@@ -44,6 +47,8 @@ void setup()
     adc_setup();
     Serial.printf("[i]   Setup Buzzer\n");
     buz_setup();
+    Serial.printf("[i]   Setup RTTTL player\n");
+    rtttl_setup();
     Serial.printf("[i]   Setup PWM\n");
     pwm_setup();
     Serial.printf("[i]   Setup Detector\n");
@@ -79,31 +84,36 @@ void loop()
     hasWork |= mqtt_loop();
     hasWork |= ota_loop();
     hasWork |= det_loop();
+    hasWork |= rtttl_loop();
 
     bool voltage_ok = ((adc_get_voltage() >= current_config.voltage_min) && (adc_get_voltage() <= current_config.voltage_max));
 
-    if(pwm_learning())
+    if(((current_config.verbose & 8) && voltage_ok) || !config_valid)
     {
-        led_r = (sin(loopCount / 5.0f) + 1) * 16;
-        led_g = (sin(loopCount / 5.0f) + 1) * 16;
-        led_b = (sin(loopCount / 5.0f) + 1) * 16;
+        led_r = (sin(loopCount / 50.0f) + 1) * 16;
+        led_g = 0;
+        led_b = (cos(loopCount / 50.0f) + 1) * 16;
     }
     else
     {
-        if((current_config.verbose & 8) && voltage_ok)
-        {
-            led_r = (sin(loopCount / 50.0f) + 1) * 16;
-            led_g = 0;
-            led_b = (cos(loopCount / 50.0f) + 1) * 16;
-        }
-        else
-        {
-            led_r = voltage_ok ? 0 : 255;
-            led_g = voltage_ok ? 16 : 0;
-            led_b = 0;
-        }
+        led_r = voltage_ok ? 0 : 255;
+        led_g = voltage_ok ? 16 : 0;
+        led_b = 0;
     }
 
-    led_set(0, led_r, led_g, led_b);
+    if(!config_valid)
+    {
+        led_set_inhibit(false);
+        for(int led = 0; led < 6; led++)
+        {
+            led_set_adv(led, led_r, led_g, led_b, led == 5);
+        }
+        led_set_inhibit(true);
+    }
+    else
+    {
+        led_set(0, led_r, led_g, led_b);
+    }
+
     loopCount++;
 }

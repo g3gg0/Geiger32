@@ -101,16 +101,20 @@ bool wifi_loop(void)
 
                 if (last_rssi != rssi)
                 {
-                    float maxRssi = -40;
+                    float maxRssi = -70;
                     float minRssi = -90;
                     float strRatio = (rssi - minRssi) / (maxRssi - minRssi);
                     float strength = min(1, max(0, strRatio));
-                    float brightness = 0.08f;
+                    float brightness = 0.05f;
                     int r = brightness * 255.0f * (1.0f - strength);
                     int g = brightness * 255.0f * strength;
 
                     led_set(1, r, g, 0);
-                    //Serial.printf("[WiFi] RSSI %d, strength: %1.2f, r: %d, g: %d\n", rssi, strength, r, g);
+
+                    if(current_config.verbose & 1)
+                    {
+                        Serial.printf("[WiFi] RSSI %d, strength: %1.2f, r: %d, g: %d\n", rssi, strength, r, g);
+                    }
 
                     last_rssi = rssi;
                 }
