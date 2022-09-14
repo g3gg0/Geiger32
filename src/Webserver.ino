@@ -228,8 +228,84 @@ void handle_test()
     webserver.send(200, "text/html", "Ok");
 }
 
+// 192.168.1.91/set_parm?http_name=plot.html&http_download=https%3A%2F%2Fg3gg0.magiclantern.fm%2FFirmware%2FGeiger%2Fplot.html
+
 void handle_set_parm()
 {
+    if(webserver.arg("http_download") != "" && webserver.arg("http_name") != "")
+    {
+        String url = webserver.arg("http_download");
+        String filename = webserver.arg("http_name");
+        HTTPClient http;
+
+        http.begin(url);
+
+        int httpCode = http.GET();
+
+        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+        switch(httpCode)
+        {
+            case HTTP_CODE_OK:
+            {
+                int len = http.getSize();
+                const int blocksize = 1024;
+                uint8_t *buffer = (uint8_t *)malloc(blocksize);
+
+                if(!buffer)
+                {
+                    Serial.printf("[HTTP] Failed to alloc %d byte\n", blocksize);
+                    return;
+                }
+                
+                WiFiClient *stream = http.getStreamPtr();
+                File file = SPIFFS.open("/" + filename, "w");
+                
+                if(!file)
+                {
+                    Serial.printf("[HTTP] Failed to open file\n", blocksize);
+                    return;
+                }
+
+                int written = 0;
+
+                while(http.connected() && (written < len))
+                {
+                    size_t size = stream->available();
+
+                    if(size)
+                    {
+                        int c = stream->readBytes(buffer, ((size > blocksize) ? blocksize : size));
+
+                        if(c > 0)
+                        {
+                            file.write(buffer, c);
+                            written += c;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                free(buffer);
+                file.close();
+
+                Serial.printf("[HTTP] Finished. Wrote %d byte to %s\n", written, filename.c_str());
+                webserver.send(200, "text/plain", "Downloaded " + url + " and wrote " + written + " byte to " + filename);
+                break;
+            }
+            
+            default:
+                Serial.print("[HTTP] unexpected response\n"); 
+                webserver.send(200, "text/plain", "Unexpected HTTP status code " + httpCode);
+                break;
+        }
+
+        return;
+    }
+
     if(webserver.arg("http_update") != "")
     {
         String url = webserver.arg("http_update");
