@@ -15,6 +15,7 @@ PubSubClient mqtt(client);
 
 extern float pwm_value;
 extern uint32_t pwm_freq;
+extern float pwm_deviation;
 
 int mqtt_last_publish_time = 0;
 int mqtt_lastConnect = 0;
@@ -150,6 +151,7 @@ bool mqtt_loop()
             mqtt_last_publish_time = time;
             int counts = det_fetch();
             
+            
             if(current_config.mqtt_publish & 1)
             {
                 mqtt_publish_int((char*)"feeds/integer/%s/ticks", counts);
@@ -159,6 +161,8 @@ bool mqtt_loop()
                 mqtt_publish_float((char*)"feeds/float/%s/voltage", adc_voltage_avg);
                 mqtt_publish_float((char*)"feeds/float/%s/pwm_freq", pwm_freq);
                 mqtt_publish_float((char*)"feeds/float/%s/pwm_value", pwm_value);
+                mqtt_publish_float((char*)"feeds/float/%s/pwm_deviation", pwm_deviation);
+                mqtt_publish_int((char*)"feeds/integer/%s/version", PIO_SRC_REVNUM);
             }
             if(current_config.mqtt_publish & 4)
             {
