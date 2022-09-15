@@ -39,6 +39,8 @@ void pwm_setup()
 
     pwm_confirmed = false;
     pwm_confirm_start = millis();
+
+    adc_reset_voltage();
 }
 
 void pwm_testmode(uint32_t state)
@@ -72,7 +74,7 @@ bool pwm_loop()
         pwm_value = 0;
         ledcWrite(PWM_LEDC, PWM_PCT(0));
 
-        sprintf(msg, "[PWM] Voltage %2.2f V avg (%2.2f V last sample) > %2.2f V, shutdown", adc_voltage_avg, adc_voltage, current_config.voltage_max);
+        sprintf(msg, "[PWM] Voltage %2.2f V avg (%2.2f V last sample) > %2.2f V, shutdown. PWM %d Hz", adc_voltage_avg, adc_voltage, current_config.voltage_max, pwm_freq);
         mqtt_publish_string((char *)"feeds/string/%s/error", msg);
         Serial.println(msg);
         
@@ -155,11 +157,11 @@ bool pwm_loop()
             led_set_adv(pos, 0, 0, 255, pos == 5);
         }
 
-        /* wait at least 2 seconds */
-        if(expired >= 2000)
+        /* wait at least 1 second */
+        if(expired >= 1000)
         {
-            /* voltage within 5 V tolerance */
-            if(fabsf(deltaVoltage) < 5)
+            /* voltage within 10 V tolerance */
+            if(fabsf(deltaVoltage) < 10)
             {
                 pwm_confirmed = true;
 
@@ -179,8 +181,8 @@ bool pwm_loop()
             {
                 Serial.printf("[PWM] Voltage not up\n");
 
-                /* and up to 5 seconds if it gets stable */
-                if(expired >= 5000)
+                /* and up to 20 seconds if it gets stable */
+                if(expired >= 20000)
                 {
                     char msg[128];
 

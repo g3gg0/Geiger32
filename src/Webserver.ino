@@ -48,19 +48,19 @@ void www_setup()
 
 unsigned char h2int(char c)
 {
-    if (c >= '0' && c <='9')
+    if (c >= '0' && c <= '9')
     {
-        return((unsigned char)c - '0');
+        return ((unsigned char)c - '0');
     }
-    if (c >= 'a' && c <='f')
+    if (c >= 'a' && c <= 'f')
     {
-        return((unsigned char)c - 'a' + 10);
+        return ((unsigned char)c - 'a' + 10);
     }
-    if (c >= 'A' && c <='F')
+    if (c >= 'A' && c <= 'F')
     {
-        return((unsigned char)c - 'A' + 10);
+        return ((unsigned char)c - 'A' + 10);
     }
-    return(0);
+    return (0);
 }
 
 String urldecode(String str)
@@ -69,45 +69,44 @@ String urldecode(String str)
     char c;
     char code0;
     char code1;
-    for (int i =0; i < str.length(); i++)
+    for (int i = 0; i < str.length(); i++)
     {
-        c=str.charAt(i);
+        c = str.charAt(i);
         if (c == '+')
         {
-            encodedString+=' ';  
+            encodedString += ' ';
         }
         else if (c == '%')
         {
             i++;
-            code0=str.charAt(i);
+            code0 = str.charAt(i);
             i++;
-            code1=str.charAt(i);
+            code1 = str.charAt(i);
             c = (h2int(code0) << 4) | h2int(code1);
-            encodedString+=c;
+            encodedString += c;
         }
         else
         {
-            encodedString+=c;  
+            encodedString += c;
         }
-      
+
         yield();
     }
-    
-   return encodedString;
+
+    return encodedString;
 }
 
 void www_activity()
 {
-    if(wifi_captive)
+    if (wifi_captive)
     {
         www_last_captive = millis();
     }
 }
 
-
 int www_is_captive_active()
 {
-    if(wifi_captive && millis() - www_last_captive < 30000)
+    if (wifi_captive && millis() - www_last_captive < 30000)
     {
         return 1;
     }
@@ -118,7 +117,7 @@ void handle_404()
 {
     www_activity();
 
-    if(wifi_captive)
+    if (wifi_captive)
     {
         char buf[128];
         sprintf(buf, "HTTP/1.1 302 Found\r\nContent-Type: text/html\r\nContent-length: 0\r\nLocation: http://%s/\r\n\r\n", WiFi.softAPIP().toString().c_str());
@@ -246,7 +245,7 @@ void handle_test()
 
 void handle_set_parm()
 {
-    if(webserver.arg("http_download") != "" && webserver.arg("http_name") != "")
+    if (webserver.arg("http_download") != "" && webserver.arg("http_name") != "")
     {
         String url = webserver.arg("http_download");
         String filename = webserver.arg("http_name");
@@ -258,7 +257,7 @@ void handle_set_parm()
 
         Serial.printf("[HTTP] GET... code: %d\n", httpCode);
 
-        switch(httpCode)
+        switch (httpCode)
         {
             case HTTP_CODE_OK:
             {
@@ -266,16 +265,16 @@ void handle_set_parm()
                 const int blocksize = 1024;
                 uint8_t *buffer = (uint8_t *)malloc(blocksize);
 
-                if(!buffer)
+                if (!buffer)
                 {
                     Serial.printf("[HTTP] Failed to alloc %d byte\n", blocksize);
                     return;
                 }
-                
+
                 WiFiClient *stream = http.getStreamPtr();
                 File file = SPIFFS.open("/" + filename, "w");
-                
-                if(!file)
+
+                if (!file)
                 {
                     Serial.printf("[HTTP] Failed to open file\n", blocksize);
                     return;
@@ -283,15 +282,15 @@ void handle_set_parm()
 
                 int written = 0;
 
-                while(http.connected() && (written < len))
+                while (http.connected() && (written < len))
                 {
                     size_t size = stream->available();
 
-                    if(size)
+                    if (size)
                     {
                         int c = stream->readBytes(buffer, ((size > blocksize) ? blocksize : size));
 
-                        if(c > 0)
+                        if (c > 0)
                         {
                             file.write(buffer, c);
                             written += c;
@@ -310,10 +309,10 @@ void handle_set_parm()
                 webserver.send(200, "text/plain", "Downloaded " + url + " and wrote " + written + " byte to " + filename);
                 break;
             }
-            
+
             default:
             {
-                Serial.print("[HTTP] unexpected response\n"); 
+                Serial.print("[HTTP] unexpected response\n");
                 webserver.send(200, "text/plain", "Unexpected HTTP status code " + httpCode);
                 break;
             }
@@ -322,16 +321,16 @@ void handle_set_parm()
         return;
     }
 
-    if(webserver.arg("http_update") != "")
+    if (webserver.arg("http_update") != "")
     {
         String url = webserver.arg("http_update");
 
         Serial.printf("Update from %s\n", url.c_str());
-        
+
         ESPhttpUpdate.rebootOnUpdate(false);
         t_httpUpdate_return ret = ESPhttpUpdate.update(url);
 
-        switch(ret)
+        switch (ret)
         {
             case HTTP_UPDATE_FAILED:
                 webserver.send(200, "text/plain", "HTTP_UPDATE_FAILED while updating from " + url + " " + ESPhttpUpdate.getLastErrorString());
@@ -424,10 +423,10 @@ void handle_set_parm()
         webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Saved. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
         delay(500);
         ESP.restart();
-        return; 
+        return;
     }
-  
-    if(webserver.arg("scan") == "true")
+
+    if (webserver.arg("scan") == "true")
     {
         www_wifi_scanned = WiFi.scanNetworks();
     }
@@ -449,7 +448,7 @@ String SendHTML()
     String ptr = "<!DOCTYPE html> <html>\n";
     ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
 
-    sprintf(buf, "<title>Geiger_v3 Control</title>\n");
+    sprintf(buf, "<title>Geiger Control</title>\n");
 
     ptr += buf;
     ptr += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
@@ -473,7 +472,7 @@ String SendHTML()
     ptr += ".together label { margin: 0.5em 0; border-radius: 0; } \n";
     ptr += ".together label:first-of-type { border-radius: 0.5em 0 0 0.5em; } \n";
     ptr += ".together label:last-of-type { border-radius: 0 0.5em 0.5em 0; } \n";
-    ptr += "p {font-size: 14px;color: #888;margin-bottom: 10px;}\n"; 
+    ptr += "p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
     ptr += "td {padding: 0.3em}\n";
     ptr += "</style>\n";
     /* https://github.com/mdbassit/Coloris */
@@ -482,15 +481,15 @@ String SendHTML()
     ptr += "</head>\n";
     ptr += "<body>\n";
 
-    sprintf(buf, "<h1>Geiger v3</h1>\n");
+    sprintf(buf, "<h1>Geiger</h1>\n");
     ptr += buf;
 
-    sprintf(buf, "<h3>v1." xstr(PIO_SRC_REVNUM) " - " xstr(PIO_SRC_REV) "</h1>\n");
+    sprintf(buf, "<h3>v1." xstr(PIO_SRC_REVNUM) " - " xstr(PIO_SRC_REV) "</h3>\n");
     ptr += buf;
-    
-    if(strlen(wifi_error) != 0)
+
+    if (strlen(wifi_error) != 0)
     {
-        sprintf(buf, "<h2>WiFi Error: %s</h1>\n", wifi_error);
+        sprintf(buf, "<h2>WiFi Error: %s</h2>\n", wifi_error);
         ptr += buf;
     }
 
@@ -513,43 +512,41 @@ String SendHTML()
         ptr += buf;                                                                                                       \
     } while (0)
 
-#define ADD_CONFIG_CHECK4(name, value, fmt, desc, text0, text1, text2, text3) \
-    do \
-    { \
-        ptr += "<tr><td>" desc ":</td><td><div class=\"check-buttons together\">"; \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c0\" name=\"" name "_c0\" value=\"1\" %s>\n", (value&1)?"checked":""); \
-        ptr += buf; \
-        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n"); \
-        ptr += buf; \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c1\" name=\"" name "_c1\" value=\"1\" %s>\n", (value&2)?"checked":""); \
-        ptr += buf; \
-        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n"); \
-        ptr += buf; \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c2\" name=\"" name "_c2\" value=\"1\" %s>\n", (value&4)?"checked":""); \
-        ptr += buf; \
-        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n"); \
-        ptr += buf; \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c3\" name=\"" name "_c3\" value=\"1\" %s>\n", (value&8)?"checked":""); \
-        ptr += buf; \
-        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n"); \
-        ptr += buf; \
-        sprintf(buf, "</div></td></tr>\n"); \
-        ptr += buf; \
+#define ADD_CONFIG_CHECK4(name, value, fmt, desc, text0, text1, text2, text3)                                                             \
+    do                                                                                                                                    \
+    {                                                                                                                                     \
+        ptr += "<tr><td>" desc ":</td><td><div class=\"check-buttons together\">";                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c0\" name=\"" name "_c0\" value=\"1\" %s>\n", (value & 1) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c1\" name=\"" name "_c1\" value=\"1\" %s>\n", (value & 2) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c2\" name=\"" name "_c2\" value=\"1\" %s>\n", (value & 4) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c3\" name=\"" name "_c3\" value=\"1\" %s>\n", (value & 8) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "</div></td></tr>\n");                                                                                               \
+        ptr += buf;                                                                                                                       \
     } while (0)
 
-#define ADD_CONFIG_COLOR(name, value, fmt, desc) \
-    do \
-    { \
-        ptr += "<tr><td><label for=\"" name "\">" desc ":</label></td>"; \
+#define ADD_CONFIG_COLOR(name, value, fmt, desc)                                                                                       \
+    do                                                                                                                                 \
+    {                                                                                                                                  \
+        ptr += "<tr><td><label for=\"" name "\">" desc ":</label></td>";                                                               \
         sprintf(buf, "<td><input type=\"text\" id=\"" name "\" name=\"" name "\" value=\"" fmt "\" data-coloris></td></tr>\n", value); \
-        ptr += buf; \
+        ptr += buf;                                                                                                                    \
     } while (0)
 
     ADD_CONFIG("hostname", current_config.hostname, "%s", "Hostname");
     ADD_CONFIG("wifi_ssid", current_config.wifi_ssid, "%s", "WiFi SSID");
     ADD_CONFIG("wifi_password", current_config.wifi_password, "%s", "WiFi Password");
-    
-
 
     ptr += "<tr><td>WiFi networks:</td><td>";
 
@@ -561,13 +558,13 @@ String SendHTML()
     {
         ptr += "No networks found, <button type=\"submit\" name=\"scan\" value=\"true\">Rescan WiFi</button>";
     }
-    else 
+    else
     {
         ptr += "<table>";
         ptr += "<tr><td><button type=\"submit\" name=\"scan\" value=\"true\">Rescan WiFi</button></td></tr>";
         for (int i = 0; i < www_wifi_scanned; ++i)
         {
-            if(WiFi.SSID(i) != "")
+            if (WiFi.SSID(i) != "")
             {
                 ptr += "<tr><td align=\"left\"><tt><a href=\"javascript:void(0);\" onclick=\"document.getElementById('wifi_ssid').value = '";
                 ptr += WiFi.SSID(i);
@@ -609,10 +606,6 @@ String SendHTML()
     ADD_CONFIG("http_update", "", "%s", "Update URL");
 
     ptr += "<td></td><td><input type=\"submit\" value=\"Save\"><button type=\"submit\" name=\"reboot\" value=\"true\">Save &amp; Reboot</button></td></table></form>\n";
-
-/*
-    ptr += "<form action=\"/search\">\n";
-    ptr += "<input type=\"submit\" value=\"Raise PWM and search peak\"></form>\n";*/
 
     ptr += "</body>\n";
     ptr += "</html>\n";
