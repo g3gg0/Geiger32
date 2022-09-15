@@ -197,7 +197,7 @@ bool pwm_loop()
                     pwm_value = 0;
                     ledcWrite(PWM_LEDC, PWM_PCT(0));
 
-                    sprintf(msg, "[PWM] Voltage didn't come up properly after %d seconds", expired / 1000);
+                    sprintf(msg, "[PWM] Voltage didn't come up properly after %d seconds (%2.2f V)", expired / 1000, adc_voltage_avg);
                     mqtt_publish_string((char *)"feeds/string/%s/error", msg);
                     Serial.println(msg);
 
