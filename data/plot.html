@@ -150,7 +150,7 @@ setInterval(function ( ) {
 
 var chart_pwm = new Highcharts.Chart({
   chart:{ renderTo : 'chart-pwm' },
-  title: { text: 'PWM duty cycle' },
+  title: { text: 'PWM Frequency' },
   series: [{
     showInLegend: false,
     data: []
@@ -165,7 +165,7 @@ var chart_pwm = new Highcharts.Chart({
     dateTimeLabelFormats: { second: '%H:%M:%S' }
   },
   yAxis: {
-    title: { text: 'duty cycle (%)' }
+    title: { text: 'Frequency (Hz)' }
   },
   credits: { enabled: false }
 });
@@ -183,7 +183,7 @@ setInterval(function ( ) {
       }
     }
   };
-  xhttp.open("GET", "/pwm", true);
+  xhttp.open("GET", "/pwmfreq", true);
   xhttp.send();
 }, 2000 ) ;
 

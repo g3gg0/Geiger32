@@ -23,6 +23,7 @@ void www_setup()
     webserver.on("/plot", handle_plot);
     webserver.on("/voltage", handle_voltage);
     webserver.on("/pwm", handle_pwm);
+    webserver.on("/pwmfreq", handle_pwmfreq);
     webserver.on("/counts", handle_counts);
     webserver.on("/counts_avg", handle_counts_avg);
     webserver.on("/reset", handle_reset);
@@ -47,13 +48,16 @@ void www_setup()
 
 unsigned char h2int(char c)
 {
-    if (c >= '0' && c <='9'){
+    if (c >= '0' && c <='9')
+    {
         return((unsigned char)c - '0');
     }
-    if (c >= 'a' && c <='f'){
+    if (c >= 'a' && c <='f')
+    {
         return((unsigned char)c - 'a' + 10);
     }
-    if (c >= 'A' && c <='F'){
+    if (c >= 'A' && c <='F')
+    {
         return((unsigned char)c - 'A' + 10);
     }
     return(0);
@@ -61,27 +65,32 @@ unsigned char h2int(char c)
 
 String urldecode(String str)
 {
-    String encodedString="";
+    String encodedString = "";
     char c;
     char code0;
     char code1;
-    for (int i =0; i < str.length(); i++){
+    for (int i =0; i < str.length(); i++)
+    {
         c=str.charAt(i);
-      if (c == '+'){
-        encodedString+=' ';  
-      }else if (c == '%') {
-        i++;
-        code0=str.charAt(i);
-        i++;
-        code1=str.charAt(i);
-        c = (h2int(code0) << 4) | h2int(code1);
-        encodedString+=c;
-      } else{
-        
-        encodedString+=c;  
-      }
+        if (c == '+')
+        {
+            encodedString+=' ';  
+        }
+        else if (c == '%')
+        {
+            i++;
+            code0=str.charAt(i);
+            i++;
+            code1=str.charAt(i);
+            c = (h2int(code0) << 4) | h2int(code1);
+            encodedString+=c;
+        }
+        else
+        {
+            encodedString+=c;  
+        }
       
-      yield();
+        yield();
     }
     
    return encodedString;
@@ -167,6 +176,13 @@ void handle_pwm()
     webserver.send(200, "text/plain", buf);
 }
 
+void handle_pwmfreq()
+{
+    char buf[32];
+    sprintf(buf, "%d", pwm_freq);
+    webserver.send(200, "text/plain", buf);
+}
+
 void handle_ota()
 {
     ota_setup();
@@ -227,8 +243,6 @@ void handle_test()
 
     webserver.send(200, "text/html", "Ok");
 }
-
-// 192.168.1.91/set_parm?http_name=plot.html&http_download=https%3A%2F%2Fg3gg0.magiclantern.fm%2FFirmware%2FGeiger%2Fplot.html
 
 void handle_set_parm()
 {
@@ -298,9 +312,11 @@ void handle_set_parm()
             }
             
             default:
+            {
                 Serial.print("[HTTP] unexpected response\n"); 
                 webserver.send(200, "text/plain", "Unexpected HTTP status code " + httpCode);
                 break;
+            }
         }
 
         return;

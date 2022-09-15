@@ -67,9 +67,15 @@ bool pwm_loop()
     /* safety check high prio */
     if(adc_voltage_avg > current_config.voltage_max)
     {
+        char msg[128];
+
         pwm_value = 0;
-        Serial.printf("[PWM] Voltage %2.2f > %2.2f, shutdown\n", adc_voltage_avg, current_config.voltage_max);
         ledcWrite(PWM_LEDC, PWM_PCT(0));
+
+        sprintf(msg, "[PWM] Voltage %2.2f V avg (%2.2f V last sample) > %2.2f V, shutdown", adc_voltage_avg, adc_voltage, current_config.voltage_max);
+        mqtt_publish_string((char *)"feeds/string/%s/error", msg);
+        Serial.println(msg);
+        
         return false;
     }
 
@@ -94,8 +100,14 @@ bool pwm_loop()
     /* safety check low prio, averaged */
     if(adc_voltage_avg < current_config.voltage_min)
     {
+        char msg[128];
+
         pwm_value = 0;
-        Serial.printf("[PWM] Voltage %2.2f < %2.2f, shutdown\n", adc_voltage_avg, current_config.voltage_min);
+        ledcWrite(PWM_LEDC, PWM_PCT(0));
+
+        sprintf(msg, "[PWM] Voltage %2.2f V avg (%2.2f V last sample) < %2.2f V, shutdown", adc_voltage_avg, adc_voltage, current_config.voltage_min);
+        mqtt_publish_string((char *)"feeds/string/%s/error", msg);
+        Serial.println(msg);
     }
 
     /* emergency disable active? */
@@ -170,6 +182,8 @@ bool pwm_loop()
                 /* and up to 5 seconds if it gets stable */
                 if(expired >= 5000)
                 {
+                    char msg[128];
+
                     for(int pos = 0; pos < 6; pos++)
                     {
                         led_set(pos, 255, 0, 0);
@@ -179,9 +193,13 @@ bool pwm_loop()
                     buzz_beep(2500, 500);
                     buzz_beep(1500, 500);
                     buzz_beep(1000, 750);
+
                     pwm_value = 0;
                     ledcWrite(PWM_LEDC, PWM_PCT(0));
-                    Serial.printf("[PWM] Voltage didn't come up properly after %d seconds\n", expired / 1000);
+
+                    sprintf(msg, "[PWM] Voltage didn't come up properly after %d seconds", expired / 1000);
+                    mqtt_publish_string((char *)"feeds/string/%s/error", msg);
+                    Serial.println(msg);
 
                     delay(500);
                 }
