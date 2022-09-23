@@ -327,6 +327,13 @@ void handle_set_parm()
 
         Serial.printf("Update from %s\n", url.c_str());
 
+        led_set_inhibit(false);
+
+        for(int pos = 0; pos < 6; pos++)
+        {
+            led_set_adv(pos, 255, 0, 255, pos == 5);
+        }
+
         ESPhttpUpdate.rebootOnUpdate(false);
         t_httpUpdate_return ret = ESPhttpUpdate.update(url);
 
@@ -350,7 +357,6 @@ void handle_set_parm()
                 ESP.restart();
                 return; 
         }
-
         return;
     }
 
@@ -603,11 +609,11 @@ String SendHTML()
     ADD_CONFIG_COLOR("elevated_color", current_config.elevated_color, "#%06X", "Elevated color");
     ADD_CONFIG_COLOR("flash_color", current_config.flash_color, "#%06X", "Flash color");
     ADD_CONFIG("elevated_level", current_config.elevated_level, "%d", "Elevated level [cpm]");
-    ADD_CONFIG("http_update", "", "%s", "Update URL");
+    ADD_CONFIG("http_update", "", "%s", "Update URL (<a href=\"javascript:void(0);\" onclick=\"document.getElementById('http_update').value = 'https://g3gg0.magiclantern.fm/Firmware/Geiger/firmware.bin'\">Release</a>)");
 
     ptr += "<td></td><td><input type=\"submit\" value=\"Save\"><button type=\"submit\" name=\"reboot\" value=\"true\">Save &amp; Reboot</button></td></table></form>\n";
-
     ptr += "</body>\n";
     ptr += "</html>\n";
+
     return ptr;
 }
