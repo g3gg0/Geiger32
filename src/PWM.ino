@@ -64,6 +64,13 @@ void pwm_test(uint32_t frequency, float duty)
     }
 }
 
+bool pwm_is_stable()
+{
+    double deltaVoltage = current_config.voltage_target - adc_voltage_avg;
+
+    return fabs(deltaVoltage) < 5;
+}
+
 bool pwm_loop()
 {
     /* safety check high prio */
@@ -216,5 +223,5 @@ bool pwm_loop()
         led_set_inhibit(!pwm_confirmed);
     }
     
-    return false;
+    return !pwm_is_stable();
 }

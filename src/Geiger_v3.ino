@@ -9,12 +9,17 @@
 #include "Config.h"
 
 
+
 int led_r = 0;
 int led_g = 0;
 int led_b = 0;
 int loopCount = 0;
 
 extern bool config_valid;
+float main_duration_avg = 0;
+float main_duration = 0;
+float main_duration_max = 0;
+float main_duration_min = 1000000;
 
 
 void setup()
@@ -69,9 +74,12 @@ void setup()
     buz_tick();
 }
 
+
 void loop()
 {
     bool hasWork = false;
+
+    uint64_t startTime = micros();
 
     hasWork |= led_loop();
     hasWork |= adc_loop();
@@ -85,6 +93,20 @@ void loop()
     hasWork |= ota_loop();
     hasWork |= det_loop();
     hasWork |= rtttl_loop();
+
+    uint64_t duration = micros() - startTime;
+
+    main_duration = duration;
+    main_duration_avg = (15 * main_duration_avg + duration) / 16.0f;
+
+    if(main_duration < main_duration_min)
+    {
+        main_duration_min = main_duration;
+    }
+    if(main_duration > main_duration_max)
+    {
+        main_duration_max = main_duration;
+    }
 
     bool voltage_ok = ((adc_get_voltage() >= current_config.voltage_min) && (adc_get_voltage() <= current_config.voltage_max));
 
@@ -116,4 +138,9 @@ void loop()
     }
 
     loopCount++;
+
+    if(!hasWork)
+    {
+        delay(100);
+    }
 }

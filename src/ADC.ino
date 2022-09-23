@@ -35,23 +35,33 @@ void adc_reset_voltage()
 
 bool adc_loop()
 {
-    float raw = 0;
-    for (int sample = 0; sample < current_config.voltage_avg; sample++)
-    {
-        raw += analogRead(ADC_GPIO);
-    }
-    adc_raw = raw / current_config.voltage_avg;
-    adc_vadc = ADC_VADC(adc_raw);
-    adc_voltage = ADC_VHV(adc_vadc);
+    int curTime = millis();
+    static int nextTime = 0;
 
-    if(adc_voltage_avg > 1.0f)
+    if(curTime > nextTime || !pwm_is_stable())
     {
-        adc_voltage_avg = (3 * adc_voltage_avg + adc_voltage) / 4;
-    }
-    else
-    {
-        adc_voltage_avg = adc_voltage;
+        float raw = 0;
+        for (int sample = 0; sample < current_config.voltage_avg; sample++)
+        {
+            raw += analogRead(ADC_GPIO);
+        }
+        adc_raw = raw / current_config.voltage_avg;
+        adc_vadc = ADC_VADC(adc_raw);
+        adc_voltage = ADC_VHV(adc_vadc);
+
+        if(adc_voltage_avg > 0.1f)
+        {
+            adc_voltage_avg = (3 * adc_voltage_avg + adc_voltage) / 4;
+        }
+        else
+        {
+            adc_voltage_avg = adc_voltage;
+        }
+
+        nextTime = curTime + 500;
+
+        return true;
     }
 
-    return true;
+    return false;
 }

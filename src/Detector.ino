@@ -63,6 +63,7 @@ void det_setup()
 bool det_loop()
 {
     bool detected = last_detects != det_counts;
+    bool hasWork = true;
     uint32_t current_millis = millis();
 
     /* averaging method: measure time distance between n ticks and average CPM from that */
@@ -87,13 +88,11 @@ bool det_loop()
         det_last_events_avg = 0;
     }
 
-
     /* when averaging result is elevated, set warning level for 10s */
     if(det_last_events_avg > current_config.elevated_level)
     {
         levels_elevated = current_millis + 10000;
     }
-
 
     if(levels_elevated > current_millis)
     {
@@ -140,7 +139,12 @@ bool det_loop()
         }
     }
 
-    return true;
+    if((led_det_r_dest == led_det_r) && (led_det_g_dest == led_det_g) && (led_det_b_dest == led_det_b))
+    {
+        hasWork = false;
+    }
+
+    return hasWork;
 }
 
 uint32_t det_fetch()

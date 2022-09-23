@@ -55,7 +55,6 @@ bool wifi_loop(void)
     /* standard refresh time */
     nextTime = curTime + 500;
 
-
     /* when stuck at a state, disconnect */
     if (++stateCounter > 20)
     {
