@@ -198,7 +198,7 @@ bool mqtt_loop()
 
                 mqtt_publish_float((char *)"feeds/float/%s/esp32_hall", esp32_hall);
 
-                if((main_duration_max > 0) && (main_duration_min < 1000000))
+                if((main_duration_max > 0) && (main_duration_max < 1000000) && (main_duration_min > 0) && (main_duration_min < 1000000))
                 {
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration", main_duration);
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_min", main_duration_min);
