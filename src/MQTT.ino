@@ -196,15 +196,17 @@ bool mqtt_loop()
                 mqtt_publish_float((char *)"feeds/float/%s/pwm_deviation", pwm_deviation);
                 mqtt_publish_int((char *)"feeds/integer/%s/version", PIO_SRC_REVNUM);
 
-                if(main_duration_max > 0 && main_duration_min < 1000000)
-
                 mqtt_publish_float((char *)"feeds/float/%s/esp32_hall", esp32_hall);
-                mqtt_publish_float((char *)"feeds/float/%s/main_duration", main_duration);
-                mqtt_publish_float((char *)"feeds/float/%s/main_duration_min", main_duration_min);
-                mqtt_publish_float((char *)"feeds/float/%s/main_duration_max", main_duration_max);
-                mqtt_publish_float((char *)"feeds/float/%s/main_duration_avg", main_duration_avg);
-                main_duration_max = 0;
-                main_duration_min = 1000000;
+
+                if((main_duration_max > 0) && (main_duration_min < 1000000))
+                {
+                    mqtt_publish_float((char *)"feeds/float/%s/main_duration", main_duration);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_duration_min", main_duration_min);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_duration_max", main_duration_max);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_duration_avg", main_duration_avg);
+                    main_duration_max = 0;
+                    main_duration_min = 1000000;
+                }
             }
             if (current_config.mqtt_publish & 4)
             {

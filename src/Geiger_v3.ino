@@ -8,18 +8,17 @@
 
 #include "Config.h"
 
-
-
 int led_r = 0;
 int led_g = 0;
 int led_b = 0;
 int loopCount = 0;
 
-extern bool config_valid;
 float main_duration_avg = 0;
 float main_duration = 0;
 float main_duration_max = 0;
 float main_duration_min = 1000000;
+
+extern bool config_valid;
 
 
 void setup()
@@ -70,8 +69,6 @@ void setup()
     env_setup();
 
     Serial.println("Setup done");
-
-    buz_tick();
 }
 
 
@@ -99,18 +96,18 @@ void loop()
     main_duration = duration;
     main_duration_avg = (15 * main_duration_avg + duration) / 16.0f;
 
-    if(main_duration < main_duration_min)
+    if (main_duration < main_duration_min)
     {
         main_duration_min = main_duration;
     }
-    if(main_duration > main_duration_max)
+    if (main_duration > main_duration_max)
     {
         main_duration_max = main_duration;
     }
 
     bool voltage_ok = ((adc_get_voltage() >= current_config.voltage_min) && (adc_get_voltage() <= current_config.voltage_max));
 
-    if(((current_config.verbose & 8) && voltage_ok) || !config_valid)
+    if (((current_config.verbose & 8) && voltage_ok) || !config_valid)
     {
         led_r = (sin(loopCount / 50.0f) + 1) * 16;
         led_g = 0;
@@ -123,7 +120,7 @@ void loop()
         led_b = 0;
     }
 
-    if(!config_valid)
+    if (!config_valid)
     {
         led_set_inhibit(false);
         for(int led = 0; led < 6; led++)
