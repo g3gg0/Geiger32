@@ -4,7 +4,7 @@
 
 #define DET_GPIO 18
 
-#define DET_FADE 4
+#define DET_FADE 8
 #define DET_LAST_EVENT_COUNT 10
 
 uint32_t det_counts = 0;

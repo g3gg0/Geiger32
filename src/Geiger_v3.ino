@@ -140,4 +140,8 @@ void loop()
     {
         delay(100);
     }
+    else
+    {
+        delay(10);
+    }
 }
