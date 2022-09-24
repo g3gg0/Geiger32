@@ -204,9 +204,9 @@ bool mqtt_loop()
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_min", main_duration_min);
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_max", main_duration_max);
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_avg", main_duration_avg);
-                    main_duration_max = 0;
-                    main_duration_min = 1000000;
                 }
+                main_duration_max = 0;
+                main_duration_min = 1000000;
             }
             if (current_config.mqtt_publish & 4)
             {
