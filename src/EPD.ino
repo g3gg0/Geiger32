@@ -545,6 +545,11 @@ void epd_loop_task(void * parameter)
 
 void epd_setup()
 {
+    if((current_config.verbose & 16) == 0)
+    {
+        Serial.println("[EPD] Disabled, not initializing");
+        return;
+    }
     pinMode(EPD_BUSY, INPUT);
     pinMode(EPD_RST, OUTPUT);
     pinMode(EPD_DC, OUTPUT);
@@ -557,12 +562,6 @@ void epd_setup()
     display.init();
     u8g2Fonts.begin(display);
 
-    xTaskCreate(
-        epd_loop_task,    // Function that should be called
-        "EPD task",   // Name of the task (for debugging)
-        6000,            // Stack size (bytes)
-        NULL,            // Parameter to pass
-        1,               // Task priority
-        NULL             // Task handle
-    );
+    Serial.println("[EPD]   Starting task on core 1");
+    xTaskCreate(epd_loop_task, "EPD task", 6000, NULL, 1, NULL);
 }

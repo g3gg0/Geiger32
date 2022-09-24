@@ -384,6 +384,7 @@ void handle_set_parm()
     current_config.verbose |= (webserver.arg("verbose_c1") != "") ? 2 : 0;
     current_config.verbose |= (webserver.arg("verbose_c2") != "") ? 4 : 0;
     current_config.verbose |= (webserver.arg("verbose_c3") != "") ? 8 : 0;
+    current_config.verbose |= (webserver.arg("verbose_c4") != "") ? 16 : 0;
     current_config.mqtt_publish = 0;
     current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c0") != "") ? 1 : 0;
     current_config.mqtt_publish |= (webserver.arg("mqtt_publish_c1") != "") ? 2 : 0;
@@ -542,6 +543,34 @@ String SendHTML()
         ptr += buf;                                                                                                                       \
     } while (0)
 
+#define ADD_CONFIG_CHECK5(name, value, fmt, desc, text0, text1, text2, text3, text4)                                                             \
+    do                                                                                                                                    \
+    {                                                                                                                                     \
+        ptr += "<tr><td>" desc ":</td><td><div class=\"check-buttons together\">";                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c0\" name=\"" name "_c0\" value=\"1\" %s>\n", (value & 1) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c1\" name=\"" name "_c1\" value=\"1\" %s>\n", (value & 2) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c2\" name=\"" name "_c2\" value=\"1\" %s>\n", (value & 4) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c3\" name=\"" name "_c3\" value=\"1\" %s>\n", (value & 8) ? "checked" : ""); \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c4\" name=\"" name "_c4\" value=\"1\" %s>\n", (value & 16) ? "checked" : "");\
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "<label for=\"" name "_c4\">" text4 "</label>\n");                                                                   \
+        ptr += buf;                                                                                                                       \
+        sprintf(buf, "</div></td></tr>\n");                                                                                               \
+        ptr += buf;                                                                                                                       \
+    } while (0)
+
 #define ADD_CONFIG_COLOR(name, value, fmt, desc)                                                                                       \
     do                                                                                                                                 \
     {                                                                                                                                  \
@@ -603,7 +632,7 @@ String SendHTML()
     ADD_CONFIG("pwm_value", current_config.pwm_value, "%1.2f", "PWM duty cycle [%]");
     ADD_CONFIG("buzz_length", current_config.buzz_length, "%d", "Buzzer duration [ms]");
     ADD_CONFIG("buzz_freq", current_config.buzz_freq, "%d", "Buzzer frequency [Hz]");
-    ADD_CONFIG_CHECK4("verbose", current_config.verbose, "%d", "Verbosity", "Serial", "Beep", "Blink", "Fading");
+    ADD_CONFIG_CHECK5("verbose", current_config.verbose, "%d", "Verbosity", "Serial", "Beep", "Blink", "Fading", "EPD");
     ADD_CONFIG_CHECK4("mqtt_publish", current_config.mqtt_publish, "%d", "MQTT publishes", "Geiger", "Debug", "BME280", "CCS811");
     ADD_CONFIG_COLOR("idle_color", current_config.idle_color, "#%06X", "Idle color");
     ADD_CONFIG_COLOR("elevated_color", current_config.elevated_color, "#%06X", "Elevated color");
