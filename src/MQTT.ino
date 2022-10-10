@@ -184,7 +184,7 @@ bool mqtt_loop()
             mqtt_last_publish_time = time;
             int counts = det_fetch();
 
-            if (current_config.mqtt_publish & 1)
+            if ((current_config.mqtt_publish & 1) && pwm_is_stable())
             {
                 mqtt_publish_int((char *)"feeds/integer/%s/ticks", counts);
             }
