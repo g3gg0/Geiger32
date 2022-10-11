@@ -1,12 +1,12 @@
 
 #include "Config.h"
+#include "Macros.h"
 
 #define PWM_LEDC 1
 #define PWM_GPIO 27
 
 #define PWM_BITS 9
 #define PWM_PCT(x) ((uint32_t) ((100.0f-x) * ((1UL << (PWM_BITS)) - 1) / 100.0f))
-
 
 
 float pwm_value = 0;
@@ -17,7 +17,6 @@ long pwm_next_check = 0;
 long pwm_confirm_start = 0;
 bool pwm_confirmed = false;
 
-#define COERCE(val,min,max) do { if((val) > (max)) { val = max; } else if((val) < (min)) { val = min; } } while(0)
 
 void pwm_setup()
 {
@@ -136,13 +135,13 @@ bool pwm_loop()
     double deltaFreq = -deltaVoltage * current_config.pwm_pid_i;
 
     /* saturate I-term */
-    COERCE(deltaFreq, -1000, 1000);
+    coerce(deltaFreq, -1000, 1000);
 
     /* integrate */
     pwm_freq += deltaFreq;
 
     /* saturate PWM frequency */
-    COERCE(pwm_freq, current_config.pwm_freq_min, current_config.pwm_freq_max);
+    coerce(pwm_freq, current_config.pwm_freq_min, current_config.pwm_freq_max);
 
     /* write PWM frequency */
     ledcSetup(PWM_LEDC, pwm_freq, PWM_BITS);

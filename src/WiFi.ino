@@ -1,4 +1,6 @@
+
 #include <DNSServer.h>
+
 DNSServer dnsServer;
 
 bool connecting = false;

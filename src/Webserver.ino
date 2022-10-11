@@ -1,18 +1,15 @@
+
 #include <WebServer.h>
 #include <ESP32httpUpdate.h>
 #include "Config.h"
-
-#define xstr(s) str(s)
-#define str(s) #s
+#include "Macros.h"
+#include "LED.h"
 
 WebServer webserver(80);
 extern char wifi_error[];
 extern bool wifi_captive;
 int www_wifi_scanned = -1;
 int www_last_captive = 0;
-
-#define min(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
-#define max(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
 
 void www_setup()
 {
