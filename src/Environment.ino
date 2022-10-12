@@ -131,7 +131,7 @@ bool env_loop()
             }
         }
 
-        nextTime = curTime + 10000;
+        nextTime = curTime + 60000;
         return true;
     }
 

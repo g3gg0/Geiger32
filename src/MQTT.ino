@@ -220,7 +220,7 @@ bool mqtt_loop()
                 mqtt_publish_int((char *)"feeds/integer/%s/tvoc", ccs811_tvoc);
             }
         }
-        nextTime = time + 1000;
+        nextTime = time + 10000;
     }
 
     return false;
