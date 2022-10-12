@@ -35,8 +35,8 @@ void adc_reset_voltage()
 
 bool adc_loop()
 {
-    int curTime = millis();
-    static int nextTime = 0;
+    uint32_t curTime = millis();
+    static uint32_t nextTime = 0;
 
     if(curTime > nextTime || !pwm_is_stable())
     {

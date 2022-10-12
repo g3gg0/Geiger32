@@ -9,7 +9,7 @@ WebServer webserver(80);
 extern char wifi_error[];
 extern bool wifi_captive;
 int www_wifi_scanned = -1;
-int www_last_captive = 0;
+uint32_t www_last_captive = 0;
 
 void www_setup()
 {

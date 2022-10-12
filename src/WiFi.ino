@@ -39,9 +39,9 @@ void wifi_enter_captive()
 bool wifi_loop(void)
 {
     int status = WiFi.status();
-    int curTime = millis();
-    static int nextTime = 0;
-    static int stateCounter = 0;
+    uint32_t curTime = millis();
+    static uint32_t nextTime = 0;
+    static uint32_t stateCounter = 0;
 
     if (wifi_captive)
     {

@@ -8,10 +8,10 @@
 
 #include "Config.h"
 
-int led_r = 0;
-int led_g = 0;
-int led_b = 0;
-int loopCount = 0;
+uint32_t led_r = 0;
+uint32_t led_g = 0;
+uint32_t led_b = 0;
+uint32_t loopCount = 0;
 
 float main_duration_avg = 0;
 float main_duration = 0;

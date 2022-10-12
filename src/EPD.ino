@@ -21,7 +21,7 @@ const char epd_logo_copyright[] = "\xA9 g3gg0.de";
 #define geiger_height 140
 
 
-uint64_t epd_lasttime = 0;
+uint32_t epd_lasttime = 0;
 extern uint32_t det_counts_last;
 
 
@@ -528,7 +528,7 @@ void epd_loop_task(void * parameter)
 
     while(1)
     {
-        uint64_t now = millis();
+        uint32_t now = millis();
 
         if(now - epd_lasttime > 60000)
         {

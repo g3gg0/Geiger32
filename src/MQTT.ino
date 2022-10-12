@@ -19,9 +19,9 @@ extern float main_duration_max;
 extern float main_duration_min;
 extern float main_duration;
 
-int mqtt_last_publish_time = 0;
-int mqtt_lastConnect = 0;
-int mqtt_retries = 0;
+uint32_t mqtt_last_publish_time = 0;
+uint32_t mqtt_lastConnect = 0;
+uint32_t mqtt_retries = 0;
 bool mqtt_fail = false;
 
 char command_topic[64];
@@ -150,7 +150,7 @@ void mqtt_publish_int(const char *name, uint32_t value)
 bool mqtt_loop()
 {
     uint32_t time = millis();
-    static int nextTime = 0;
+    static uint32_t nextTime = 0;
 
 #ifdef TESTMODE
     return false;
@@ -174,7 +174,7 @@ bool mqtt_loop()
     {
         bool do_publish = false;
 
-        if ((time - mqtt_last_publish_time) > 60000)
+        if (time > (mqtt_last_publish_time + 60000))
         {
             do_publish = true;
         }
@@ -228,7 +228,7 @@ bool mqtt_loop()
 
 void MQTT_connect()
 {
-    int curTime = millis();
+    uint32_t curTime = millis();
     int8_t ret;
 
     if (strlen(current_config.mqtt_server) == 0)
