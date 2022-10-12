@@ -242,6 +242,10 @@ void handle_test()
 
 void handle_set_parm()
 {
+    if (webserver.arg("cpu_freq"))
+    {
+        setCpuFrequencyMhz(max(1, min(240, webserver.arg("cpu_freq").toInt())));
+    }
     if (webserver.arg("http_download") != "" && webserver.arg("http_name") != "")
     {
         String url = webserver.arg("http_download");
