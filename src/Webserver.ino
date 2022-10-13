@@ -363,10 +363,10 @@ void handle_set_parm()
 
     current_config.pwm_pid_i = max(0, min(1000, webserver.arg("pwm_pid_i").toFloat()));
     current_config.pwm_freq = max(1000, min(40000, webserver.arg("pwm_freq").toInt()));
-    current_config.pwm_freq_min = max(1000, min(40000, webserver.arg("pwm_freq_min").toInt()));
-    current_config.pwm_freq_max = max(1000, min(40000, webserver.arg("pwm_freq_max").toInt()));
+    current_config.pwm_freq_min = max(1000, min(50000, webserver.arg("pwm_freq_min").toInt()));
+    current_config.pwm_freq_max = max(1000, min(50000, webserver.arg("pwm_freq_max").toInt()));
     current_config.pwm_value = max(1, min(99, webserver.arg("pwm_value").toFloat()));
-    current_config.voltage_target = max(1, min(420, webserver.arg("voltage_target").toFloat()));
+    current_config.voltage_target = max(1, min(600, webserver.arg("voltage_target").toFloat()));
     current_config.voltage_min = max(0, min(420, webserver.arg("voltage_min").toFloat()));
     current_config.voltage_max = max(1, min(600, webserver.arg("voltage_max").toFloat()));
     current_config.voltage_avg = max(1, min(1024, webserver.arg("voltage_avg").toInt()));

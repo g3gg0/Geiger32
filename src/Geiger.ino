@@ -17,6 +17,10 @@ float main_duration_avg = 0;
 float main_duration = 0;
 float main_duration_max = 0;
 float main_duration_min = 1000000;
+float main_cycletime_avg = 0;
+float main_cycletime = 0;
+float main_cycletime_max = 0;
+float main_cycletime_min = 1000000;
 
 extern bool config_valid;
 
@@ -74,9 +78,25 @@ void setup()
 
 void loop()
 {
+    static uint64_t lastStart = 0;
     bool hasWork = false;
 
-    uint64_t startTime = micros();
+    uint64_t microsEntry = micros();
+
+    if(lastStart > 0)
+    {
+        main_cycletime = microsEntry - lastStart;
+        main_cycletime_avg = (15 * main_cycletime_avg + main_cycletime) / 16.0f;
+        if (main_cycletime < main_cycletime_min)
+        {
+            main_cycletime_min = main_cycletime;
+        }
+        if (main_cycletime > main_cycletime_max)
+        {
+            main_cycletime_max = main_cycletime;
+        }
+    }
+    lastStart = microsEntry;
 
     hasWork |= led_loop();
     hasWork |= adc_loop();
@@ -91,7 +111,7 @@ void loop()
     hasWork |= det_loop();
     hasWork |= rtttl_loop();
 
-    uint64_t duration = micros() - startTime;
+    uint64_t duration = micros() - microsEntry;
 
     main_duration = duration;
     main_duration_avg = (15 * main_duration_avg + duration) / 16.0f;

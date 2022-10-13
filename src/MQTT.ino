@@ -19,6 +19,11 @@ extern float main_duration_max;
 extern float main_duration_min;
 extern float main_duration;
 
+extern float main_cycletime_avg;
+extern float main_cycletime_max;
+extern float main_cycletime_min;
+extern float main_cycletime;
+
 uint32_t mqtt_last_publish_time = 0;
 uint32_t mqtt_lastConnect = 0;
 uint32_t mqtt_retries = 0;
@@ -204,6 +209,10 @@ bool mqtt_loop()
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_min", main_duration_min);
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_max", main_duration_max);
                     mqtt_publish_float((char *)"feeds/float/%s/main_duration_avg", main_duration_avg);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_cycletime",     main_cycletime);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_cycletime_min", main_cycletime_min);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_cycletime_max", main_cycletime_max);
+                    mqtt_publish_float((char *)"feeds/float/%s/main_cycletime_avg", main_cycletime_avg);
                 }
                 main_duration_max = 0;
                 main_duration_min = 1000000;
