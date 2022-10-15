@@ -6,6 +6,7 @@ DNSServer dnsServer;
 bool connecting = false;
 bool wifi_captive = false;
 char wifi_error[64];
+int wifi_rssi = 0;
 
 void wifi_setup()
 {
@@ -103,13 +104,13 @@ bool wifi_loop(void)
             else
             {
                 static int last_rssi = -1;
-                int rssi = WiFi.RSSI();
+                wifi_rssi = WiFi.RSSI();
 
-                if (last_rssi != rssi)
+                if (last_rssi != wifi_rssi)
                 {
                     float maxRssi = -70;
                     float minRssi = -90;
-                    float strRatio = (rssi - minRssi) / (maxRssi - minRssi);
+                    float strRatio = (wifi_rssi - minRssi) / (maxRssi - minRssi);
                     float strength = min(1, max(0, strRatio));
                     float brightness = 0.05f;
                     int r = brightness * 255.0f * (1.0f - strength);
@@ -119,10 +120,10 @@ bool wifi_loop(void)
 
                     if(current_config.verbose & 1)
                     {
-                        Serial.printf("[WiFi] RSSI %d, strength: %1.2f, r: %d, g: %d\n", rssi, strength, r, g);
+                        Serial.printf("[WiFi] RSSI %d, strength: %1.2f, r: %d, g: %d\n", wifi_rssi, strength, r, g);
                     }
 
-                    last_rssi = rssi;
+                    last_rssi = wifi_rssi;
                 }
 
                 /* happy with this state, reset counter */

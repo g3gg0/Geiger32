@@ -9,6 +9,7 @@
 WiFiClient client;
 PubSubClient mqtt(client);
 
+extern int wifi_rssi;
 extern float pwm_value;
 extern uint32_t pwm_freq;
 extern float pwm_deviation;
@@ -200,6 +201,7 @@ bool mqtt_loop()
                 mqtt_publish_float((char *)"feeds/float/%s/pwm_value", pwm_value);
                 mqtt_publish_float((char *)"feeds/float/%s/pwm_deviation", pwm_deviation);
                 mqtt_publish_int((char *)"feeds/integer/%s/version", PIO_SRC_REVNUM);
+                mqtt_publish_int((char *)"feeds/integer/%s/rssi", wifi_rssi);
 
                 mqtt_publish_float((char *)"feeds/float/%s/esp32_hall", esp32_hall);
 
