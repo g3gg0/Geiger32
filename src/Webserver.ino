@@ -242,9 +242,31 @@ void handle_test()
 
 void handle_set_parm()
 {
-    if (webserver.arg("cpu_freq"))
+    if (webserver.arg("cpu_freq") != "")
     {
         setCpuFrequencyMhz(max(1, min(240, webserver.arg("cpu_freq").toInt())));
+        return;
+    }
+    if (webserver.arg("sleep") != "")
+    {
+        Serial.printf("[HTTP] sleep mode\n" );
+        delay(100);
+        switch(max(1, min(5, webserver.arg("sleep").toInt())))
+        {
+            case 0:
+                WiFi.disconnect(true);
+                WiFi.mode(WIFI_OFF);
+                break;
+            case 1:
+                WiFi.setSleep(true);
+                setCpuFrequencyMhz(40);
+                break;
+            case 2:
+                esp_sleep_enable_timer_wakeup(10 * 1000 * 1000);
+                esp_light_sleep_start();
+                break;
+        }
+        return;
     }
     if (webserver.arg("http_download") != "" && webserver.arg("http_name") != "")
     {
