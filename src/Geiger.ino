@@ -7,6 +7,7 @@
 #include <SPIFFS.h>
 
 #include "Config.h"
+#include "HA.h"
 
 uint32_t led_r = 0;
 uint32_t led_g = 0;
@@ -110,6 +111,7 @@ void loop()
     hasWork |= ota_loop();
     hasWork |= det_loop();
     hasWork |= rtttl_loop();
+    
 
     uint64_t duration = micros() - microsEntry;
 

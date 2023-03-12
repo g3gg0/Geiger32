@@ -5,6 +5,8 @@
 #include <ESP32httpUpdate.h>
 #include <Config.h>
 
+#include "HA.h"
+
 
 WiFiClient client;
 PubSubClient mqtt(client);
@@ -104,6 +106,100 @@ void callback(char *topic, byte *payload, unsigned int length)
 void mqtt_setup()
 {
     mqtt.setCallback(callback);
+
+    ha_setup();
+
+    t_ha_entity entity;
+    memset(&entity, 0x00, sizeof(entity));
+
+    entity.id = "voltage";
+    entity.name = "Tube voltage";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/voltage";
+    entity.unit_of_meas = "V";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "pwm_freq";
+    entity.name = "PWM Frequency";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/pwm_freq";
+    entity.unit_of_meas = "Hz";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "pwm_value";
+    entity.name = "PWM duty cycle";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/pwm_value";
+    entity.unit_of_meas = "%";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "pwm_deviation";
+    entity.name = "PWM averaged deviation";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/pwm_deviation";
+    entity.unit_of_meas = "";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "ticks";
+    entity.name = "Activity counter ticks";
+    entity.type = sensor;
+    entity.stat_t = "feeds/integer/%s/ticks";
+    entity.unit_of_meas = "Bq";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "rssi";
+    entity.name = "WiFi RSSI";
+    entity.type = sensor;
+    entity.stat_t = "feeds/integer/%s/rssi";
+    entity.unit_of_meas = "dBm";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "activity";
+    entity.name = "Activity";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/activity";
+    entity.unit_of_meas = "µSv";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "esp32_hall";
+    entity.name = "ESP32 hall sensor data";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/esp32_hall";
+    entity.unit_of_meas = NULL;
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+
+    entity.id = "temperature";
+    entity.name = "BME280 Temperature";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/temperature";
+    entity.unit_of_meas = "°C";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "humidity";
+    entity.name = "BME280 Humidity";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/humidity";
+    entity.unit_of_meas = "%";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
+
+    entity.id = "pressure";
+    entity.name = "BME280 Pressure";
+    entity.type = sensor;
+    entity.stat_t = "feeds/float/%s/pressure";
+    entity.unit_of_meas = "hPa";
+    entity.val_tpl = NULL;
+    ha_add(&entity);
 }
 
 void mqtt_publish_string(const char *name, const char *value)
@@ -176,6 +272,8 @@ bool mqtt_loop()
 
     mqtt.loop();
 
+    ha_loop();
+
     if (time >= nextTime)
     {
         bool do_publish = false;
@@ -193,6 +291,7 @@ bool mqtt_loop()
             if ((current_config.mqtt_publish & 1) && pwm_is_stable())
             {
                 mqtt_publish_int((char *)"feeds/integer/%s/ticks", counts);
+                mqtt_publish_float((char *)"feeds/float/%s/activity", current_config.conv_usv_per_bq * counts);
             }
             if (current_config.mqtt_publish & 2)
             {

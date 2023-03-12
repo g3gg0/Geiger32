@@ -4,10 +4,22 @@
 #define CONFIG_SOFTAPNAME  "esp32-config"
 #define CONFIG_OTANAME     "Geiger"
 
-#define CONFIG_MAGIC 0xE1AAFF09
+#define CONFIG_MAGIC 0xE1AAFF0A
 typedef struct
 {
     uint32_t magic;
+
+    char hostname[32];
+    char wifi_ssid[32];
+    char wifi_password[32];
+
+    char mqtt_server[32];
+    int mqtt_port;
+    char mqtt_user[32];
+    char mqtt_password[32];
+    char mqtt_client[32];
+
+    float conv_usv_per_bq;
     float voltage_target;
     float voltage_min;
     float voltage_max;
@@ -26,14 +38,6 @@ typedef struct
     uint32_t buzz_length;
     uint32_t buzz_freq;
     uint32_t mqtt_publish;
-    char hostname[32];
-    char wifi_ssid[32];
-    char wifi_password[32];
-    char mqtt_server[32];
-    int mqtt_port;
-    char mqtt_user[32];
-    char mqtt_password[32];
-    char mqtt_client[32];
 } t_cfg;
 
 

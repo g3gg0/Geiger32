@@ -383,6 +383,7 @@ void handle_set_parm()
         return;
     }
 
+    current_config.conv_usv_per_bq = max(0, min(1000, webserver.arg("conv_usv_per_bq").toFloat()));
     current_config.pwm_pid_i = max(0, min(1000, webserver.arg("pwm_pid_i").toFloat()));
     current_config.pwm_freq = max(1000, min(40000, webserver.arg("pwm_freq").toInt()));
     current_config.pwm_freq_min = max(1000, min(50000, webserver.arg("pwm_freq_min").toInt()));
@@ -433,6 +434,7 @@ void handle_set_parm()
         Serial.printf("  pwm_start:        %2.2f %%\n", current_config.pwm_value);
         Serial.printf("  pwm_freq_min:     %d Hz\n", current_config.pwm_freq_min);
         Serial.printf("  pwm_freq_max:     %d Hz\n", current_config.pwm_freq_max);
+        Serial.printf("  conv_usv_per_bq:   %2.2f V\n", current_config.conv_usv_per_bq);
         Serial.printf("  voltage_target:   %2.2f V\n", current_config.voltage_target);
         Serial.printf("  voltage_min:      %2.2f V\n", current_config.voltage_min);
         Serial.printf("  voltage_max:      %2.2f V\n", current_config.voltage_max);
@@ -648,6 +650,7 @@ String SendHTML()
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
     ADD_CONFIG("voltage_avg", current_config.voltage_avg, "%d", "Voltage averaging [n]");
     ADD_CONFIG("adc_corr", current_config.adc_corr, "%1.2f", "ADC correction");
+    ADD_CONFIG("conv_usv_per_bq", current_config.conv_usv_per_bq, "%1.4f", "µSv per tick (µSv/Bq)");
     ADD_CONFIG("pwm_pid_i", current_config.pwm_pid_i, "%1.2f", "PWM PID I-Gain (Hz/V)");
     ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency startup [Hz]");
     ADD_CONFIG("pwm_freq_min", current_config.pwm_freq_min, "%d", "PWM frequency min [Hz]");
