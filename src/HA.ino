@@ -1,6 +1,5 @@
 
 #include <PubSubClient.h>
-#include <ESP32httpUpdate.h>
 #include <Config.h>
 
 #include "HA.h"
@@ -9,14 +8,57 @@
 t_ha_info ha_info;
 extern PubSubClient mqtt;
 
+void ha_addstrarray(char *json_str, const char *name, const char *value, bool last = false)
+{
+    char tmp_buf[128];
+
+    if (value && strlen(value) > 0)
+    {
+        int pos = 0;
+        char values_buf[128];
+        int out_pos = 0;
+
+        values_buf[out_pos++] = '"';
+
+        bool done = false;
+        while (!done && out_pos < sizeof(values_buf))
+        {
+            switch (value[pos])
+            {
+            case ';':
+                values_buf[out_pos++] = '"';
+                if (value[pos + 1])
+                {
+                    values_buf[out_pos++] = ',';
+                    values_buf[out_pos++] = '"';
+                }
+                break;
+
+            case 0:
+                values_buf[out_pos++] = '"';
+                done = true;
+                break;
+
+            default:
+                values_buf[out_pos++] = value[pos];
+                break;
+            }
+            pos++;
+        }
+        values_buf[out_pos++] = '\000';
+
+        snprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": [%s]%c ", name, values_buf, (last ? ' ' : ','));
+        strcat(json_str, tmp_buf);
+    }
+}
 
 void ha_addstr(char *json_str, const char *name, const char *value, bool last = false)
 {
     char tmp_buf[128];
 
-    if(value && strlen(value) > 0)
+    if (value && strlen(value) > 0)
     {
-        sprintf(tmp_buf, "\"%s\": \"%s\"%c ", name, value, (last ? ' ' : ','));
+        snprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, value, (last ? ' ' : ','));
         strcat(json_str, tmp_buf);
     }
 }
@@ -25,21 +67,20 @@ void ha_addmqtt(char *json_str, const char *name, const char *value, bool last =
 {
     char tmp_buf[128];
 
-    if(value && strlen(value) > 0)
+    if (value && strlen(value) > 0)
     {
         char path_buffer[64];
         sprintf(path_buffer, value, current_config.mqtt_client);
-        sprintf(tmp_buf, "\"%s\": \"%s\"%c ", name, path_buffer, (last ? ' ' : ','));
+        snprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, path_buffer, (last ? ' ' : ','));
         strcat(json_str, tmp_buf);
     }
 }
-
 
 void ha_addfloat(char *json_str, const char *name, float value, bool last = false)
 {
     char tmp_buf[64];
 
-    sprintf(tmp_buf, "\"%s\": \"%f\"%c ", name, value, (last ? ' ' : ','));
+    snprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%f\"%c ", name, value, (last ? ' ' : ','));
     strcat(json_str, tmp_buf);
 }
 
@@ -47,11 +88,11 @@ void ha_addint(char *json_str, const char *name, int value, bool last = false)
 {
     char tmp_buf[64];
 
-    sprintf(tmp_buf, "\"%s\": \"%d\"%c ", name, value, (last ? ' ' : ','));
+    snprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%d\"%c ", name, value, (last ? ' ' : ','));
     strcat(json_str, tmp_buf);
 }
 
-void ha_publish() 
+void ha_publish()
 {
     char *json_str = (char *)malloc(512);
     char mqtt_path[128];
@@ -61,31 +102,39 @@ void ha_publish()
 
     sprintf(ha_info.cu, "http://%s/", WiFi.localIP().toString().c_str());
 
-    for(int pos = 0; pos < ha_info.entitiy_count; pos++) 
+    for (int pos = 0; pos < ha_info.entitiy_count; pos++)
     {
         const char *type = "undefined";
 
-        switch(ha_info.entities[pos].type) 
+        switch (ha_info.entities[pos].type)
         {
-            case sensor:
-                Serial.printf("[HA] sensor\n");
-                type = "sensor";
-                break;
-            case number:
-                Serial.printf("[HA] number\n");
-                type = "number";
-                break;
-            case button:
-                Serial.printf("[HA] button\n");
-                type = "button";
-                break;
-            case binary_sensor:
-                Serial.printf("[HA] binary_sensor\n");
-                type = "binary_sensor";
-                break;
-            default:
-                Serial.printf("[HA] last one\n");
-                return;
+        case ha_sensor:
+            Serial.printf("[HA] sensor\n");
+            type = "sensor";
+            break;
+        case ha_text:
+            Serial.printf("[HA] text\n");
+            type = "text";
+            break;
+        case ha_number:
+            Serial.printf("[HA] number\n");
+            type = "number";
+            break;
+        case ha_button:
+            Serial.printf("[HA] button\n");
+            type = "button";
+            break;
+        case ha_binary_sensor:
+            Serial.printf("[HA] binary_sensor\n");
+            type = "binary_sensor";
+            break;
+        case ha_select:
+            Serial.printf("[HA] select\n");
+            type = "select";
+            break;
+        default:
+            Serial.printf("[HA] last one\n");
+            return;
         }
 
         sprintf(uniq_id, "%s_%s", ha_info.id, ha_info.entities[pos].id);
@@ -98,11 +147,13 @@ void ha_publish()
         strcpy(json_str, "{");
         ha_addstr(json_str, "name", ha_info.entities[pos].name);
         ha_addstr(json_str, "uniq_id", uniq_id);
+        ha_addstr(json_str, "dev_cla", ha_info.entities[pos].dev_class);
         ha_addstr(json_str, "ic", ha_info.entities[pos].ic);
         ha_addstr(json_str, "ent_cat", ha_info.entities[pos].ent_cat);
         ha_addmqtt(json_str, "cmd_t", ha_info.entities[pos].cmd_t);
         ha_addmqtt(json_str, "stat_t", ha_info.entities[pos].stat_t);
         ha_addmqtt(json_str, "val_tpl", ha_info.entities[pos].val_tpl);
+        ha_addstrarray(json_str, "options", ha_info.entities[pos].options);
         ha_addstr(json_str, "unit_of_meas", ha_info.entities[pos].unit_of_meas);
         strcat(json_str, "\"dev\": {");
         ha_addstr(json_str, "name", ha_info.name);
@@ -116,7 +167,7 @@ void ha_publish()
         Serial.printf("[HA]    topic '%s'\n", mqtt_path);
         Serial.printf("[HA]    content '%s'\n", json_str);
 
-        if(!mqtt.publish(mqtt_path, json_str))
+        if (!mqtt.publish(mqtt_path, json_str))
         {
             Serial.printf("[HA] publish failed\n");
         }
@@ -126,19 +177,60 @@ void ha_publish()
     free(json_str);
 }
 
-
-bool ha_loop()
+void ha_received(char *topic, const char *payload)
 {
-    uint32_t time = millis();
-    static uint32_t nextTime = 0;
-    
-    if (time >= nextTime)
+    for (int pos = 0; pos < ha_info.entitiy_count; pos++)
     {
-        ha_publish();
-        nextTime = time + 60000;
+        if (!ha_info.entities[pos].cmd_t || !ha_info.entities[pos].received)
+        {
+            continue;
+        }
+        char item_topic[128];
+        sprintf(item_topic, ha_info.entities[pos].cmd_t, current_config.mqtt_client);
+
+        if (strcmp(topic, item_topic))
+        {
+            continue;
+        }
+
+        ha_info.entities[pos].received(&ha_info.entities[pos], ha_info.entities[pos].received_ctx, payload);
+
+        if (ha_info.entities[pos].transmit)
+        {
+            ha_info.entities[pos].transmit(&ha_info.entities[pos], ha_info.entities[pos].transmit_ctx);
+        }
+    }
+}
+
+void ha_transmit(const t_ha_entity *entity, const char *value)
+{
+    if (!entity)
+    {
+        return;
     }
 
-    return false;
+    if (!entity->stat_t)
+    {
+        return;
+    }
+    char item_topic[128];
+    sprintf(item_topic, entity->stat_t, current_config.mqtt_client);
+
+    if (!mqtt.publish(item_topic, value))
+    {
+        Serial.printf("[HA] publish failed\n");
+    }
+}
+
+void ha_transmit_all()
+{
+    for (int pos = 0; pos < ha_info.entitiy_count; pos++)
+    {
+        if (ha_info.entities[pos].transmit)
+        {
+            ha_info.entities[pos].transmit(&ha_info.entities[pos], ha_info.entities[pos].transmit_ctx);
+        }
+    }
 }
 
 void ha_setup()
@@ -156,12 +248,119 @@ void ha_setup()
     mqtt.setBufferSize(512);
 }
 
+void ha_connected()
+{
+    for (int pos = 0; pos < ha_info.entitiy_count; pos++)
+    {
+        if (!ha_info.entities[pos].cmd_t || !ha_info.entities[pos].received)
+        {
+            continue;
+        }
+        char item_topic[128];
+        sprintf(item_topic, ha_info.entities[pos].cmd_t, current_config.mqtt_client);
+
+        mqtt.subscribe(item_topic);
+    }
+    ha_publish();
+    ha_transmit_all();
+}
+
+bool ha_loop()
+{
+    uint32_t time = millis();
+    static uint32_t nextTime = 0;
+
+    if (time >= nextTime)
+    {
+        ha_publish();
+        ha_transmit_all();
+        nextTime = time + 60000;
+    }
+
+    return false;
+}
+
 void ha_add(t_ha_entity *entity)
 {
-    if(ha_info.entitiy_count >= MAX_ENTITIES)
+    if (!entity)
     {
         return;
     }
-    Serial.printf("Add: '%s' (%s)\n", entity->id, entity->name);
+
+    if (ha_info.entitiy_count >= MAX_ENTITIES)
+    {
+        return;
+    }
     memcpy(&ha_info.entities[ha_info.entitiy_count++], entity, sizeof(t_ha_entity));
+}
+
+int ha_parse_index(const char *options, const char *message)
+{
+    if (!options)
+    {
+        return -1;
+    }
+
+    int pos = 0;
+    char tmp_buf[128];
+    char *cur_elem = tmp_buf;
+
+    strncpy(tmp_buf, options, sizeof(tmp_buf));
+
+    while (true)
+    {
+        char *next_elem = strchr(cur_elem, ';');
+        if (next_elem)
+        {
+            *next_elem = '\000';
+        }
+        if (!strcmp(cur_elem, message))
+        {
+            return pos;
+        }
+
+        if (!next_elem)
+        {
+            return -1;
+        }
+
+        cur_elem = next_elem + 1;
+        pos++;
+    }
+}
+
+void ha_get_index(const char *options, int index, char *text)
+{
+    if (!options || !text)
+    {
+        return;
+    }
+
+    int pos = 0;
+    char tmp_buf[128];
+    char *cur_elem = tmp_buf;
+
+    strncpy(tmp_buf, options, sizeof(tmp_buf));
+
+    while (true)
+    {
+        char *next_elem = strchr(cur_elem, ';');
+        if (next_elem)
+        {
+            *next_elem = '\000';
+        }
+        if (pos == index)
+        {
+            strcpy(text, cur_elem);
+            return;
+        }
+
+        if (!next_elem)
+        {
+            return;
+        }
+
+        cur_elem = next_elem + 1;
+        pos++;
+    }
 }

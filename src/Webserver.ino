@@ -5,6 +5,9 @@
 #include "Macros.h"
 #include "LED.h"
 
+#define min(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
+#define max(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
+
 WebServer webserver(80);
 extern char wifi_error[];
 extern bool wifi_captive;
@@ -203,13 +206,13 @@ void handle_play()
     static char tone_buf[1024];
     const char *rtttl = urldecode(webserver.arg("tone")).c_str();
 
-    if(rtttl != NULL && strlen(rtttl) > 0)
+    if (rtttl != NULL && strlen(rtttl) > 0)
     {
         strcpy(tone_buf, rtttl);
 
-        for(int pos = 0; pos < strlen(tone_buf); pos++)
+        for (int pos = 0; pos < strlen(tone_buf); pos++)
         {
-            if(tone_buf[pos] == '-')
+            if (tone_buf[pos] == '-')
             {
                 tone_buf[pos] = '#';
             }
@@ -231,11 +234,10 @@ void handle_test()
 
     pwm_testmode(testmode);
 
-    if(testmode)
+    if (testmode)
     {
         pwm_test(freq, duty);
     }
-
 
     webserver.send(200, "text/html", "Ok");
 }
@@ -249,22 +251,22 @@ void handle_set_parm()
     }
     if (webserver.arg("sleep") != "")
     {
-        Serial.printf("[HTTP] sleep mode\n" );
+        Serial.printf("[HTTP] sleep mode\n");
         delay(100);
-        switch(max(1, min(5, webserver.arg("sleep").toInt())))
+        switch (max(1, min(5, webserver.arg("sleep").toInt())))
         {
-            case 0:
-                WiFi.disconnect(true);
-                WiFi.mode(WIFI_OFF);
-                break;
-            case 1:
-                WiFi.setSleep(true);
-                setCpuFrequencyMhz(40);
-                break;
-            case 2:
-                esp_sleep_enable_timer_wakeup(10 * 1000 * 1000);
-                esp_light_sleep_start();
-                break;
+        case 0:
+            WiFi.disconnect(true);
+            WiFi.mode(WIFI_OFF);
+            break;
+        case 1:
+            WiFi.setSleep(true);
+            setCpuFrequencyMhz(40);
+            break;
+        case 2:
+            esp_sleep_enable_timer_wakeup(10 * 1000 * 1000);
+            esp_light_sleep_start();
+            break;
         }
         return;
     }
@@ -282,63 +284,63 @@ void handle_set_parm()
 
         switch (httpCode)
         {
-            case HTTP_CODE_OK:
+        case HTTP_CODE_OK:
+        {
+            int len = http.getSize();
+            const int blocksize = 1024;
+            uint8_t *buffer = (uint8_t *)malloc(blocksize);
+
+            if (!buffer)
             {
-                int len = http.getSize();
-                const int blocksize = 1024;
-                uint8_t *buffer = (uint8_t *)malloc(blocksize);
+                Serial.printf("[HTTP] Failed to alloc %d byte\n", blocksize);
+                return;
+            }
 
-                if (!buffer)
+            WiFiClient *stream = http.getStreamPtr();
+            File file = SPIFFS.open("/" + filename, "w");
+
+            if (!file)
+            {
+                Serial.printf("[HTTP] Failed to open file\n", blocksize);
+                return;
+            }
+
+            int written = 0;
+
+            while (http.connected() && (written < len))
+            {
+                size_t size = stream->available();
+
+                if (size)
                 {
-                    Serial.printf("[HTTP] Failed to alloc %d byte\n", blocksize);
-                    return;
-                }
+                    int c = stream->readBytes(buffer, ((size > blocksize) ? blocksize : size));
 
-                WiFiClient *stream = http.getStreamPtr();
-                File file = SPIFFS.open("/" + filename, "w");
-
-                if (!file)
-                {
-                    Serial.printf("[HTTP] Failed to open file\n", blocksize);
-                    return;
-                }
-
-                int written = 0;
-
-                while (http.connected() && (written < len))
-                {
-                    size_t size = stream->available();
-
-                    if (size)
+                    if (c > 0)
                     {
-                        int c = stream->readBytes(buffer, ((size > blocksize) ? blocksize : size));
-
-                        if (c > 0)
-                        {
-                            file.write(buffer, c);
-                            written += c;
-                        }
-                        else
-                        {
-                            break;
-                        }
+                        file.write(buffer, c);
+                        written += c;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
-
-                free(buffer);
-                file.close();
-
-                Serial.printf("[HTTP] Finished. Wrote %d byte to %s\n", written, filename.c_str());
-                webserver.send(200, "text/plain", "Downloaded " + url + " and wrote " + written + " byte to " + filename);
-                break;
             }
 
-            default:
-            {
-                Serial.print("[HTTP] unexpected response\n");
-                webserver.send(200, "text/plain", "Unexpected HTTP status code " + httpCode);
-                break;
-            }
+            free(buffer);
+            file.close();
+
+            Serial.printf("[HTTP] Finished. Wrote %d byte to %s\n", written, filename.c_str());
+            webserver.send(200, "text/plain", "Downloaded " + url + " and wrote " + written + " byte to " + filename);
+            break;
+        }
+
+        default:
+        {
+            Serial.print("[HTTP] unexpected response\n");
+            webserver.send(200, "text/plain", "Unexpected HTTP status code " + httpCode);
+            break;
+        }
         }
 
         return;
@@ -352,7 +354,7 @@ void handle_set_parm()
 
         led_set_inhibit(false);
 
-        for(int pos = 0; pos < 6; pos++)
+        for (int pos = 0; pos < 6; pos++)
         {
             led_set_adv(pos, 255, 0, 255, pos == 5);
         }
@@ -362,23 +364,23 @@ void handle_set_parm()
 
         switch (ret)
         {
-            case HTTP_UPDATE_FAILED:
-                webserver.send(200, "text/plain", "HTTP_UPDATE_FAILED while updating from " + url + " " + ESPhttpUpdate.getLastErrorString());
-                Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-                break;
+        case HTTP_UPDATE_FAILED:
+            webserver.send(200, "text/plain", "HTTP_UPDATE_FAILED while updating from " + url + " " + ESPhttpUpdate.getLastErrorString());
+            Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+            break;
 
-            case HTTP_UPDATE_NO_UPDATES:
-                webserver.send(200, "text/plain", "HTTP_UPDATE_NO_UPDATES: Updating from " + url);
-                Serial.println("Update failed: HTTP_UPDATE_NO_UPDATES");
-                break;
+        case HTTP_UPDATE_NO_UPDATES:
+            webserver.send(200, "text/plain", "HTTP_UPDATE_NO_UPDATES: Updating from " + url);
+            Serial.println("Update failed: HTTP_UPDATE_NO_UPDATES");
+            break;
 
-            case HTTP_UPDATE_OK:
-                webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Firmware updated. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
-                webserver.close();
-                Serial.println("Update successful");
-                delay(500);
-                ESP.restart();
-                return; 
+        case HTTP_UPDATE_OK:
+            webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Firmware updated. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
+            webserver.close();
+            Serial.println("Update successful");
+            delay(500);
+            ESP.restart();
+            return;
         }
         return;
     }
@@ -401,7 +403,6 @@ void handle_set_parm()
     current_config.idle_color = strtoul(webserver.arg("idle_color").substring(1).c_str(), NULL, 16);
     current_config.elevated_color = strtoul(webserver.arg("elevated_color").substring(1).c_str(), NULL, 16);
     current_config.flash_color = strtoul(webserver.arg("flash_color").substring(1).c_str(), NULL, 16);
-
 
     current_config.verbose = 0;
     current_config.verbose |= (webserver.arg("verbose_c0") != "") ? 1 : 0;
@@ -449,8 +450,8 @@ void handle_set_parm()
         Serial.printf("  verbose:          %d\n", current_config.verbose);
     }
     pwm_setup();
-  
-    if(webserver.arg("reboot") == "true")
+
+    if (webserver.arg("reboot") == "true")
     {
         webserver.send(200, "text/html", "<html><head><meta http-equiv=\"Refresh\" content=\"5; url=/\"/></head><body><h1>Saved. Rebooting...</h1>(will refresh page in 5 seconds)</body></html>");
         delay(500);
@@ -480,7 +481,7 @@ String SendHTML()
     String ptr = "<!DOCTYPE html> <html>\n";
     ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
 
-    sprintf(buf, "<title>Geiger Control</title>\n");
+    sprintf(buf, "<title>" CONFIG_OTANAME " Control</title>\n");
 
     ptr += buf;
     ptr += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
@@ -513,7 +514,7 @@ String SendHTML()
     ptr += "</head>\n";
     ptr += "<body>\n";
 
-    sprintf(buf, "<h1>Geiger</h1>\n");
+    sprintf(buf, "<h1>" CONFIG_OTANAME "</h1>\n");
     ptr += buf;
 
     sprintf(buf, "<h3>v1." xstr(PIO_SRC_REVNUM) " - " xstr(PIO_SRC_REV) "</h3>\n");
@@ -568,32 +569,71 @@ String SendHTML()
         ptr += buf;                                                                                                                       \
     } while (0)
 
-#define ADD_CONFIG_CHECK5(name, value, fmt, desc, text0, text1, text2, text3, text4)                                                             \
-    do                                                                                                                                    \
-    {                                                                                                                                     \
-        ptr += "<tr><td>" desc ":</td><td><div class=\"check-buttons together\">";                                                        \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c0\" name=\"" name "_c0\" value=\"1\" %s>\n", (value & 1) ? "checked" : ""); \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                                   \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c1\" name=\"" name "_c1\" value=\"1\" %s>\n", (value & 2) ? "checked" : ""); \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                                   \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c2\" name=\"" name "_c2\" value=\"1\" %s>\n", (value & 4) ? "checked" : ""); \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n");                                                                   \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c3\" name=\"" name "_c3\" value=\"1\" %s>\n", (value & 8) ? "checked" : ""); \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n");                                                                   \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c4\" name=\"" name "_c4\" value=\"1\" %s>\n", (value & 16) ? "checked" : "");\
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "<label for=\"" name "_c4\">" text4 "</label>\n");                                                                   \
-        ptr += buf;                                                                                                                       \
-        sprintf(buf, "</div></td></tr>\n");                                                                                               \
-        ptr += buf;                                                                                                                       \
+#define ADD_CONFIG_CHECK5(name, value, fmt, desc, text0, text1, text2, text3, text4)                                                       \
+    do                                                                                                                                     \
+    {                                                                                                                                      \
+        ptr += "<tr><td>" desc ":</td><td><div class=\"check-buttons together\">";                                                         \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c0\" name=\"" name "_c0\" value=\"1\" %s>\n", (value & 1) ? "checked" : "");  \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                                    \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c1\" name=\"" name "_c1\" value=\"1\" %s>\n", (value & 2) ? "checked" : "");  \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                                    \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c2\" name=\"" name "_c2\" value=\"1\" %s>\n", (value & 4) ? "checked" : "");  \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n");                                                                    \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c3\" name=\"" name "_c3\" value=\"1\" %s>\n", (value & 8) ? "checked" : "");  \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n");                                                                    \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<input type=\"checkbox\" id=\"" name "_c4\" name=\"" name "_c4\" value=\"1\" %s>\n", (value & 16) ? "checked" : ""); \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "<label for=\"" name "_c4\">" text4 "</label>\n");                                                                    \
+        ptr += buf;                                                                                                                        \
+        sprintf(buf, "</div></td></tr>\n");                                                                                                \
+        ptr += buf;                                                                                                                        \
+    } while (0)
+
+#define ADD_CONFIG_RADIO4(name, value, fmt, desc, text0, text1, text2, text3)                                                        \
+    do                                                                                                                               \
+    {                                                                                                                                \
+        ptr += "<tr><td>" desc ":</td><td><div class=\"toggle-buttons together\">";                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c0\" name=\"" name "\" value=\"0\" %s>\n", (value == 0) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c1\" name=\"" name "\" value=\"1\" %s>\n", (value == 1) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c2\" name=\"" name "\" value=\"2\" %s>\n", (value == 2) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c2\">" text2 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c3\" name=\"" name "\" value=\"3\" %s>\n", (value == 3) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c3\">" text3 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "</div></td></tr>\n");                                                                                          \
+        ptr += buf;                                                                                                                  \
+    } while (0)
+#define ADD_CONFIG_RADIO2(name, value, fmt, desc, text0, text1)                                                                      \
+    do                                                                                                                               \
+    {                                                                                                                                \
+        ptr += "<tr><td>" desc ":</td><td><div class=\"toggle-buttons together\">";                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c0\" name=\"" name "\" value=\"0\" %s>\n", (value == 0) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c0\">" text0 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<input type=\"radio\" id=\"" name "_c1\" name=\"" name "\" value=\"1\" %s>\n", (value == 1) ? "checked" : ""); \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "<label for=\"" name "_c1\">" text1 "</label>\n");                                                              \
+        ptr += buf;                                                                                                                  \
+        sprintf(buf, "</div></td></tr>\n");                                                                                          \
+        ptr += buf;                                                                                                                  \
     } while (0)
 
 #define ADD_CONFIG_COLOR(name, value, fmt, desc)                                                                                       \
@@ -650,7 +690,7 @@ String SendHTML()
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
     ADD_CONFIG("voltage_avg", current_config.voltage_avg, "%d", "Voltage averaging [n]");
     ADD_CONFIG("adc_corr", current_config.adc_corr, "%1.2f", "ADC correction");
-    ADD_CONFIG("conv_usv_per_bq", current_config.conv_usv_per_bq, "%1.4f", "µSv per tick (µSv/Bq)");
+    ADD_CONFIG("conv_usv_per_bq", current_config.conv_usv_per_bq, "%1.4f", "uSv per tick (uSv/Bq)");
     ADD_CONFIG("pwm_pid_i", current_config.pwm_pid_i, "%1.2f", "PWM PID I-Gain (Hz/V)");
     ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency startup [Hz]");
     ADD_CONFIG("pwm_freq_min", current_config.pwm_freq_min, "%d", "PWM frequency min [Hz]");
