@@ -37,10 +37,9 @@ void www_setup()
     if (!MDNS.begin(current_config.hostname))
     {
         Serial.println("Error setting up MDNS responder!");
-        while (1)
-        {
-            delay(1000);
-        }
+        cfg_reset();
+        cfg_save();
+        ESP.restart();
     }
     MDNS.addService("http", "tcp", 80);
     MDNS.addService("telnet", "tcp", 23);

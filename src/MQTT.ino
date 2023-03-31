@@ -172,7 +172,7 @@ void mqtt_setup()
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "ticks_total";
-    entity.name = "Activity counter ticks";
+    entity.name = "Activity counter ticks total";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/integer/%s/ticks_total";
     entity.unit_of_meas = "";
@@ -322,7 +322,7 @@ bool mqtt_loop()
     {
         bool do_publish = false;
 
-        if (time > (mqtt_last_publish_time + 60000))
+        if ((time - mqtt_last_publish_time) > 60000)
         {
             do_publish = true;
         }
