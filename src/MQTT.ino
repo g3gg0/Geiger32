@@ -26,7 +26,6 @@ extern float main_cycletime_max;
 extern float main_cycletime_min;
 extern float main_cycletime;
 
-float activity_total = 0;
 uint32_t ticks_total = 0;
 
 uint32_t mqtt_last_publish_time = 0;
@@ -156,39 +155,39 @@ void mqtt_setup()
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "pwm_deviation";
     entity.name = "PWM averaged deviation";
+    entity.state_class = "measurement";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/float/%s/pwm_deviation";
-    entity.unit_of_meas = "";
-    ha_add(&entity);
-
-    memset(&entity, 0x00, sizeof(entity));
-    entity.id = "ticks";
-    entity.name = "Activity counter ticks";
-    entity.type = ha_sensor;
-    entity.stat_t = "feeds/integer/%s/ticks";
-    entity.unit_of_meas = "Bq";
-    entity.val_tpl = "{{ value|float / 60 }}";
     ha_add(&entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "ticks_total";
     entity.name = "Activity counter ticks total";
+    entity.state_class = "total_increasing";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/integer/%s/ticks_total";
-    entity.unit_of_meas = "";
+    entity.unit_of_meas = "counts";
+    ha_add(&entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "counts_per_minute";
+    entity.name = "Activity";
+    entity.type = ha_sensor;
+    entity.stat_t = "feeds/integer/%s/ticks";
+    entity.unit_of_meas = "cpm";
     ha_add(&entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "activity";
-    entity.name = "Activity";
+    entity.name = "Dose current";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/float/%s/activity";
-    entity.unit_of_meas = "µSv/min";
+    entity.unit_of_meas = "µSv/h";
     ha_add(&entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "activity_total";
-    entity.name = "Activity Total";
+    entity.name = "Dose total";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/float/%s/activity_total";
     entity.unit_of_meas = "µSv";
@@ -197,9 +196,9 @@ void mqtt_setup()
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "esp32_hall";
     entity.name = "ESP32 hall sensor data";
+    entity.state_class = "measurement";
     entity.type = ha_sensor;
     entity.stat_t = "feeds/float/%s/esp32_hall";
-    entity.unit_of_meas = NULL;
     ha_add(&entity);
 
     memset(&entity, 0x00, sizeof(entity));
@@ -335,11 +334,10 @@ bool mqtt_loop()
             if ((current_config.mqtt_publish & 1) && pwm_is_stable())
             {
                 ticks_total += counts;
-                activity_total += current_config.conv_usv_per_bq * counts;
                 mqtt_publish_int((char *)"feeds/integer/%s/ticks", counts);
                 mqtt_publish_int((char *)"feeds/integer/%s/ticks_total", ticks_total);
                 mqtt_publish_float((char *)"feeds/float/%s/activity", current_config.conv_usv_per_bq * counts);
-                mqtt_publish_float((char *)"feeds/float/%s/activity_total", activity_total);
+                mqtt_publish_float((char *)"feeds/float/%s/activity_total", current_config.conv_usv_per_bq * ticks_total / 60.0f);
             }
             if (current_config.mqtt_publish & 2)
             {

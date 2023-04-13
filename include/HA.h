@@ -2,7 +2,7 @@
 #define __HA_H__
 
 #define MAX_LEN 32
-#define MAX_ENTITIES 16
+#define MAX_ENTITIES 32
 
 typedef enum
 {
@@ -36,6 +36,8 @@ struct s_ha_entity
     const char *val_tpl;
     /* used by: sensor */
     const char *dev_class;
+    /* used by: sensor */
+    const char *state_class;
     /* used by: button, number, text */
     const char *cmd_t;
     /* used by: sensor, binary_sensor, number, text */

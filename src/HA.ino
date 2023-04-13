@@ -148,6 +148,7 @@ void ha_publish()
         ha_addstr(json_str, "name", ha_info.entities[pos].name);
         ha_addstr(json_str, "uniq_id", uniq_id);
         ha_addstr(json_str, "dev_cla", ha_info.entities[pos].dev_class);
+        ha_addstr(json_str, "stat_cla", ha_info.entities[pos].state_class);
         ha_addstr(json_str, "ic", ha_info.entities[pos].ic);
         ha_addstr(json_str, "ent_cat", ha_info.entities[pos].ent_cat);
         ha_addmqtt(json_str, "cmd_t", ha_info.entities[pos].cmd_t);

@@ -689,7 +689,7 @@ String SendHTML()
     ADD_CONFIG("voltage_max", current_config.voltage_max, "%2.0f", "Voltage maximum [V]");
     ADD_CONFIG("voltage_avg", current_config.voltage_avg, "%d", "Voltage averaging [n]");
     ADD_CONFIG("adc_corr", current_config.adc_corr, "%1.2f", "ADC correction");
-    ADD_CONFIG("conv_usv_per_bq", current_config.conv_usv_per_bq, "%1.4f", "uSv per tick (uSv/Bq)");
+    ADD_CONFIG("conv_usv_per_bq", current_config.conv_usv_per_bq, "%f", "&mu;Sv/h per tick (&mu;Sv/h/CPM)");
     ADD_CONFIG("pwm_pid_i", current_config.pwm_pid_i, "%1.2f", "PWM PID I-Gain (Hz/V)");
     ADD_CONFIG("pwm_freq", current_config.pwm_freq, "%d", "PWM frequency startup [Hz]");
     ADD_CONFIG("pwm_freq_min", current_config.pwm_freq_min, "%d", "PWM frequency min [Hz]");
