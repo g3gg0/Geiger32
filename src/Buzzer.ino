@@ -5,15 +5,15 @@
 #define BUZZER_GPIO 32
 
 #define PWM_BITS 9
-#define PWM_PCT(x) ((uint32_t) ((100.0f-x) * ((1UL << (PWM_BITS)) - 1) / 100.0f))
+#define PWM_PCT(x) ((uint32_t)((100.0f - x) * ((1UL << (PWM_BITS)) - 1) / 100.0f))
 
 void buz_setup()
 {
     pinMode(BUZZER_GPIO, OUTPUT);
     digitalWrite(BUZZER_GPIO, LOW);
     ledcAttachPin(BUZZER_GPIO, BUZZER_LEDC);
-    //ledcSetup(BUZZER_LEDC, current_config.buzz_freq, 12);
-    //ledcWrite(BUZZER_LEDC, 0);
+    // ledcSetup(BUZZER_LEDC, current_config.buzz_freq, 12);
+    // ledcWrite(BUZZER_LEDC, 0);
 }
 
 bool buz_loop()
